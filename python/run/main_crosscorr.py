@@ -236,7 +236,7 @@ def compute_cross_correlation(session):
 			data[session][order[i]][n] = C
 
 		
-		return data
+	return data
 
 
 a = dview.map_sync(compute_cross_correlation, datasets)
