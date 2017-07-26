@@ -106,6 +106,7 @@ def poisson_pseudoR2(y, yhat, ynull):
     LS = np.sum(y*np.log(eps+y) - y)
     R2 = 1-(LS-L1)/(LS-L0)
     return R2
+    
 
 def fit_cv(X, Y, algorithm, n_cv=10, verbose=1):
     """Performs cross-validated fitting. Returns (Y_hat, pR2_cv); a vector of predictions Y_hat with the

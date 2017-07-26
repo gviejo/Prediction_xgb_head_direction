@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 '''
-    File name: main_fig2.py
-    Author: Guillaume Viejo
-    Date created: 27/03/2017    
-    Python Version: 2.7
+	File name: main_fig2.py
+	Author: Guillaume Viejo
+	Date created: 27/03/2017    
+	Python Version: 2.7
 
 Fig 2
 
@@ -111,7 +111,7 @@ def fisher_information(x, f):
 	fish = np.power(slopes_, 2)
 	# for i in xrange(len(fish)):
 	# 	fish[i] = np.power((f[i+1]-f[i])/binsize, 2)
-	# fish = fish/fish.sum()
+	fish = fish/(f+1e-4)
 	# fish = fish/f[0:-1]
 	return (x, fish)
 
@@ -155,12 +155,12 @@ combination = {
 # LEARNING XGB Exemples
 #####################################################################
 params = {'objective': "count:poisson", #for poisson output
-    'eval_metric': "logloss", #loglikelihood loss
-    'seed': 2925, #for reproducibility
-    'silent': 1,
-    'learning_rate': 0.01,
-    'min_child_weight': 2, 'n_estimators': 120,
-    'max_depth': 5}        
+	'eval_metric': "logloss", #loglikelihood loss
+	'seed': 2925, #for reproducibility
+	'silent': 1,
+	'learning_rate': 0.01,
+	'min_child_weight': 2, 'n_estimators': 120,
+	'max_depth': 5}        
 
 num_round = 100
 bsts = {}
@@ -207,6 +207,7 @@ mean_angdens = all_data['mean_angdens']
 ratio = all_data['ratio']
 twod = all_data['twod_xydens']
 tcurves = all_data['alltcurve']
+gain = all_data['gain']
 
 ########################################################################
 # CORRELATION
@@ -221,32 +222,34 @@ for g in corr.iterkeys():
 		tun[0][tun[0] > np.pi] -= 2*np.pi
 		tun[1] = tun[1][np.argsort(tun[0])]
 		tun[0] = np.sort(tun[0])		
-		fis = fisher_information(tun[0], tun[1])[1] # TODO		
+		fis = fisher_information(tun[0], tun[1])[1] 
 		# fis = np.hstack((fis, fis[0])) # looping		
 		fis = fis.reshape(20,3).mean(1)
 		dens = angdens['1.'+g][k][1]
 		corr[g].append(scipy.stats.pearsonr(fis, dens)[0])
+		# if corr[g][-1] < 0.0:
+		# 	sys.exit()
 
 
 ########################################################################
 # PLOTTING
 ########################################################################
 def figsize(scale):
-    fig_width_pt = 483.69687                         # Get this from LaTeX using \the\textwidth
-    inches_per_pt = 1.0/72.27                       # Convert pt to inch
-    golden_mean = (np.sqrt(5.0)-1.0)/2.0            # Aesthetic ratio (you could change this)
-    fig_width = fig_width_pt*inches_per_pt*scale    # width in inches
-    fig_height = fig_width*golden_mean*0.85            # height in inches
-    fig_size = [fig_width,fig_height]
-    return fig_size
+	fig_width_pt = 483.69687                         # Get this from LaTeX using \the\textwidth
+	inches_per_pt = 1.0/72.27                       # Convert pt to inch
+	golden_mean = (np.sqrt(5.0)-1.0)/2.0            # Aesthetic ratio (you could change this)
+	fig_width = fig_width_pt*inches_per_pt*scale    # width in inches
+	fig_height = fig_width*golden_mean*0.85            # height in inches
+	fig_size = [fig_width,fig_height]
+	return fig_size
 
 def simpleaxis(ax):
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
-    # ax.xaxis.set_tick_params(size=6)
-    # ax.yaxis.set_tick_params(size=6)
+	ax.spines['top'].set_visible(False)
+	ax.spines['right'].set_visible(False)
+	ax.get_xaxis().tick_bottom()
+	ax.get_yaxis().tick_left()
+	# ax.xaxis.set_tick_params(size=6)
+	# ax.yaxis.set_tick_params(size=6)
 
 
 import matplotlib as mpl
@@ -254,26 +257,26 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 mpl.use("pdf")
 pdf_with_latex = {                      # setup matplotlib to use latex for output
-    "pgf.texsystem": "pdflatex",        # change this if using xetex or lautex
-    "text.usetex": True,                # use LaTeX to write all text
-    "font.family": "serif",
-    "font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
-    "font.sans-serif": [],
-    "font.monospace": [],
-    "axes.labelsize": 5,               # LaTeX default is 10pt font.
-    "font.size": 7,
-    "legend.fontsize": 5,               # Make the legend/label fonts a little smaller
-    "xtick.labelsize": 5,
-    "ytick.labelsize": 5,
-    "pgf.preamble": [
-        r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
-        r"\usepackage[T1]{fontenc}",        # plots will be generated using this preamble
-        ],
-    "lines.markeredgewidth" : 0.2,
-    "axes.linewidth"        : 0.5,
-    "ytick.major.size"      : 1.5,
-    "xtick.major.size"      : 1.5
-    }    
+	"pgf.texsystem": "pdflatex",        # change this if using xetex or lautex
+	"text.usetex": True,                # use LaTeX to write all text
+	"font.family": "serif",
+	"font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
+	"font.sans-serif": [],
+	"font.monospace": [],
+	"axes.labelsize": 5,               # LaTeX default is 10pt font.
+	"font.size": 7,
+	"legend.fontsize": 5,               # Make the legend/label fonts a little smaller
+	"xtick.labelsize": 5,
+	"ytick.labelsize": 5,
+	"pgf.preamble": [
+		r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
+		r"\usepackage[T1]{fontenc}",        # plots will be generated using this preamble
+		],
+	"lines.markeredgewidth" : 0.2,
+	"axes.linewidth"        : 0.5,
+	"ytick.major.size"      : 1.5,
+	"xtick.major.size"      : 1.5
+	}    
 mpl.rcParams.update(pdf_with_latex)
 import matplotlib.gridspec as gridspec
 from matplotlib.pyplot import *
@@ -286,7 +289,6 @@ title_ = ['Antero-dorsal nucleus', 'Post-subiculum']
 
 
 
-sys.exit()
 
 
 
@@ -382,7 +384,7 @@ aii.set_ylabel("$\%$", fontsize = 4, labelpad = 0.5)
 ##PLOT 3#################################################################################################################
 # x y split
 gs = gridspec.GridSpecFromSubplotSpec(2,2, subplot_spec = outer[1], wspace = 0.5, hspace = 0.5)
-title2 = ['AD', 'Post-S']
+title2 = ['ADn', 'PoSub']
 for e, i in zip(['ADn','Pos'],range(2)):			
 	ax = subplot(gs[i])
 	simpleaxis(ax)	
@@ -415,36 +417,92 @@ ax.set_title('Density of (x,y) splits $(\%)$', fontsize=5, position = (-0.35, 0.
 
 ##PLOT 4#################################################################################################################
 # ang x y density
-gs = gridspec.GridSpecFromSubplotSpec(1,1, subplot_spec = outer[3])
+gs = gridspec.GridSpecFromSubplotSpec(2,2, subplot_spec = outer[3], hspace = 0.06, wspace = 0.5)
 
-subplot(gs[0])
+labels = ['ADn', 'PoSub']
+
+subplot(gs[:,0])
 simpleaxis(gca())
 x = np.arange(3, dtype = float)
 for g, i in zip(ratio.iterkeys(), xrange(2)):
 	tmp = []
-	for k in ratio[g].iterkeys():
-		# plot(x, ratio[g][k], 'o', alpha = 0.5, color = colors_[i], markersize = 2)
+	for k in ratio[g].iterkeys():		
 		tmp.append(ratio[g][k])
-	tmp = np.array(tmp)
-	# mean = [np.mean(tmp[:,0]), np.mean(tmp[:,1:])]	
+	tmp = np.array(tmp)*100
 	mean = tmp.mean(0)
-	# sem = [np.std(tmp[:,0])/np.sqrt(np.size(tmp[:,0])),np.std(tmp[:,1:])/np.sqrt(np.size(tmp[:,1:].flatten()))]
 	sem = np.std(tmp, 0)/np.sqrt(np.size(tmp))
 	bar(x, mean, 0.4, yerr = sem, align='center',
-        ecolor='k', alpha=.9, color=colors_[i], ec='w')
+		ecolor='k', alpha=.9, color=colors_[i], ec='w', label = labels[i], capsize = 1)
+	plot(x, mean, 'o', alpha = 1, color = 'black', markersize = 2)
+	x += 0.41
 	# xticks([])
 	# yticks([])
+# leg = legend(loc = 'upper right')
+# leg.get_frame().set_linewidth(0.0)
+locator_params(axis='y', nbins = 3)
+ylabel('$(\%)$')
+xticks(np.arange(3)+0.205, ('Angle','x pos', 'y pos'), rotation = 45, ha='right')
+title('Density\nof splits', fontsize = 6)
 
+
+subplot(gs[0,1])
+ax = gca()
+simpleaxis(ax)
+x = np.arange(3, dtype = float)
+for g, i in zip(gain.iterkeys(), xrange(2)):
+	tmp = []
+	for k in gain[g].iterkeys():		
+		tmp.append(gain[g][k])
+	tmp = np.array(tmp)*100
+	mean = tmp.mean(0)	
+	sem = np.std(tmp, 0)/np.sqrt(np.size(tmp))
+	bar(x, mean, 0.4, yerr = sem, align='center',
+		ecolor='k', alpha=.9, color=colors_[i], ec='w', label = labels[i], capsize = 1)
+	plot(x, mean, 'o', alpha = 1, color = 'black', markersize = 2)
 	x += 0.41
+	xticks([])
+	yticks([70,90])
+	# leg = legend()
+	# leg.get_frame().set_linewidth(0.0)
+	ylim(60, 90)
+	xlim(-0.5, 2.95)
+leg = legend(fontsize = 5, bbox_to_anchor = (0,1))
+leg.get_frame().set_linewidth(0.0)		
+locator_params(axis='y', nbins = 2)
+# ylabel('$(\%)$')
+ax.spines['bottom'].set_visible(False)
+title('Gain', fontsize = 6)
+d = .015  # how big to make the diagonal lines in axes coordinates
+# arguments to pass to plot, just so we don't keep repeating them
+kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+ax.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
 
-locator_params(axis='y', nbins = 5)
-ylabel('Density of splits $(\%)$')
-xticks(np.arange(3)+0.205, ('Angle','X Pos', 'Y Pos'))
 
-
-
-
-
+subplot(gs[1,1])
+ax = gca()
+simpleaxis(ax)
+x = np.arange(3, dtype = float)
+for g, i in zip(gain.iterkeys(), xrange(2)):
+	tmp = []
+	for k in gain[g].iterkeys():		
+		tmp.append(gain[g][k])
+	tmp = np.array(tmp)*100
+	mean = tmp.mean(0)	
+	sem = np.std(tmp, 0)/np.sqrt(np.size(tmp))
+	bar(x, mean, 0.4, yerr = sem, align='center',
+		ecolor='k', alpha=.9, color=colors_[i], ec='w', label = labels[i], capsize = 1)
+	plot(x, mean, 'o', alpha = 1, color = 'black', markersize = 2)
+	x += 0.41
+	# xticks([])
+	# yticks([])
+	# leg = legend()
+	# leg.get_frame().set_linewidth(0.0)
+	ylim(0,18)
+	xlim(-0.5, 2.95)
+xticks(np.arange(3)+0.205, ('Angle','x pos', 'y pos'), rotation = 45, ha='right')
+locator_params(axis='y', nbins = 3)
+kwargs.update(transform=ax.transAxes)  # switch to the bottom axes
+ax.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
 
 savefig("../../figures/fig2.pdf", dpi = 900, bbox_inches = 'tight', facecolor = 'white')
 os.system("evince ../../figures/fig2.pdf &")

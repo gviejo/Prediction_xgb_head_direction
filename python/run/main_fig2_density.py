@@ -125,6 +125,19 @@ for g in ['2.Pos', '2.ADn']:
 			ratio[g.split('.')[1]][k] = np.array(tmp)			
 			ratio[g.split('.')[1]][k] = ratio[g.split('.')[1]][k]/float(np.sum(ratio[g.split('.')[1]][k]))
 
+gain = {}
+for g in ['2.Pos', '2.ADn']:	
+	gain[g.split('.')[1]] = {}
+	for s in data.iterkeys(): # ALL SESSIONS
+		for k in data[s]['gain'][g].iterkeys(): # ALL NEURONS	
+			tmp = []
+			for f in ['f2', 'f0', 'f1']:
+				if f in data[s]['gain'][g][k].keys():
+					tmp.append(data[s]['gain'][g][k][f])
+				else:
+					tmp.append(0.0)
+			gain[g.split('.')[1]][k] = np.array(tmp)			
+			gain[g.split('.')[1]][k] = gain[g.split('.')[1]][k]/float(np.sum(gain[g.split('.')[1]][k]))
 
 
 all_data = {}
@@ -133,6 +146,7 @@ all_data['mean_angdens'] = mean_angdens
 all_data['ratio'] = ratio
 all_data['twod_xydens'] = twod_xydens
 all_data['alltcurve'] = all_tcurve
+all_data['gain'] = gain
 
 pickle.dump(all_data, open("../data/fig2_density.pickle", 'wb'))
 

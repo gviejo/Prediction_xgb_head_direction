@@ -23,129 +23,6 @@ import xgboost as xgb
 #######################################################################
 # FONCTIONS DEFINITIONS
 #######################################################################
-def xgb_run(Xr, Yr, Xt):
-	# params = {'objective': "count:poisson", #for poisson output
-	# 'eval_metric': "logloss", #loglikelihood loss
-	# 'seed': 2925, #for reproducibility
-	# 'silent': 1,
-	# 'learning_rate': 0.05,
-	# 'min_child_weight': 2, 'n_estimators': 580,
-	# 'subsample': 0.6, 'max_depth': 5, 'gamma': 0.4}        
-	params = {'objective': "count:poisson", #for poisson output
-	'eval_metric': "poisson-nloglik", #loglikelihood loss
-	'seed': 2925, #for reproducibility
-	'silent': 1,
-	'learning_rate': 0.05,
-	'min_child_weight': 2, 'n_estimators': 250,
-	'subsample': 0.6, 'max_depth': 40, 'gamma': 0.0}
-	dtrain = xgb.DMatrix(Xr, label=Yr)
-	dtest = xgb.DMatrix(Xt)
-	num_round = 250
-	bst = xgb.train(params, dtrain, num_round)
-	Yt = bst.predict(dtest)
-	return Yt
-
-def poisson_pseudoR2(y, yhat, ynull):    
-	yhat = yhat.reshape(y.shape)
-	eps = np.spacing(1)
-	L1 = np.sum(y*np.log(eps+yhat) - yhat)
-	L1_v = y*np.log(eps+yhat) - yhat
-	L0 = np.sum(y*np.log(eps+ynull) - ynull)
-	LS = np.sum(y*np.log(eps+y) - y)
-	R2 = 1-(LS-L1)/(LS-L0)
-	return R2
-
-def fit_cv(X, Y, algorithm, n_cv=10, verbose=1):
-	"""Performs cross-validated fitting. Returns (Y_hat, pR2_cv); a vector of predictions Y_hat with the
-	same dimensions as Y, and a list of pR2 scores on each fold pR2_cv.
-	
-	X  = input data
-	Y = spiking data
-	algorithm = a function of (Xr, Yr, Xt) {training data Xr and response Yr and testing features Xt}
-				and returns the predicted response Yt
-	n_cv = number of cross-validations folds
-	
-	"""
-	if np.ndim(X)==1:
-		X = np.transpose(np.atleast_2d(X))
-
-	cv_kf = KFold(n_splits=n_cv, shuffle=True, random_state=42)
-	skf  = cv_kf.split(X)
-
-	i=1
-	Y_hat=np.zeros(len(Y))
-	pR2_cv = list()
-	
-
-	for idx_r, idx_t in skf:
-		if verbose > 1:
-			print( '...runnning cv-fold', i, 'of', n_cv)
-		i+=1
-		Xr = X[idx_r, :]
-		Yr = Y[idx_r]
-		Xt = X[idx_t, :]
-		Yt = Y[idx_t]           
-		Yt_hat = eval(algorithm)(Xr, Yr, Xt)        
-		Y_hat[idx_t] = Yt_hat
-		pR2 = poisson_pseudoR2(Yt, Yt_hat, np.mean(Yr))
-		pR2_cv.append(pR2)
-		if verbose > 1:
-			print( 'pR2: ', pR2)
-
-	if verbose > 0:
-		print("pR2_cv: %0.6f (+/- %0.6f)" % (np.mean(pR2_cv),
-											 np.std(pR2_cv)/np.sqrt(n_cv)))
-
-	return Y_hat, pR2_cv
-
-def extract_tree_threshold(trees):
-	n = len(trees.get_dump())
-	thr = {}
-	for t in xrange(n):
-		gv = xgb.to_graphviz(trees, num_trees=t)
-		body = gv.body		
-		for i in xrange(len(body)):
-			for l in body[i].split('"'):
-				if 'f' in l and '<' in l:
-					tmp = l.split("<")
-					if thr.has_key(tmp[0]):
-						thr[tmp[0]].append(float(tmp[1]))
-					else:
-						thr[tmp[0]] = [float(tmp[1])]					
-	for k in thr.iterkeys():
-		thr[k] = np.sort(np.array(thr[k]))
-	return thr
-
-def tuning_curve(x, f, nb_bins):    
-	bins = np.linspace(x.min(), x.max()+1e-8, nb_bins+1)
-	index = np.digitize(x, bins).flatten()    
-	tcurve = np.array([np.sum(f[index == i]) for i in xrange(1, nb_bins+1)])    
-	occupancy = np.array([np.sum(index == i) for i in xrange(1, nb_bins+1)])
-	tcurve = (tcurve/occupancy)*200.0
-	x = bins[0:-1] + (bins[1]-bins[0])/2.    
-	return (x, tcurve)
-
-def test_features(features, targets, learners = ['glm_pyglmnet', 'nn', 'xgb_run', 'ens']):	
-	X = data[features].values
-	Y = np.vstack(data[targets].values)
-	Models = {method:{'PR2':[],'Yt_hat':[]} for method in learners}
-	learners_ = list(learners)
-	# print learners_
-
-	for i in xrange(Y.shape[1]):
-		y = Y[:,i]
-		# TODO : make sure that 'ens' is the last learner
-		for method in learners_:
-			# print('Running '+method+'...')                              
-			Yt_hat, PR2 = fit_cv(X, y, algorithm = method, n_cv=8, verbose=0)       
-			Models[method]['Yt_hat'].append(Yt_hat)
-			Models[method]['PR2'].append(PR2)           
-
-	for m in Models.iterkeys():
-		Models[m]['Yt_hat'] = np.array(Models[m]['Yt_hat'])
-		Models[m]['PR2'] = np.array(Models[m]['PR2'])
-		
-	return Models
 
 
 #####################################################################
@@ -154,16 +31,18 @@ def test_features(features, targets, learners = ['glm_pyglmnet', 'nn', 'xgb_run'
 # thresholds dict from z620 in ../data/results_peer_fig3/
 # good pr2 with 100 trees in ../data/results_peer_fig3_good_100trees
 
-os.system("scp -r guillaume@z620.mni.mcgill.ca:~/results_peer_fig3/ ../data/")
-# os.system("scp -r viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/ ../data/")
+
 
 
 thr_directory = "../data/results_peer_fig3"
 pr2_directory = "../data/results_peer_fig3"
-
+gain_directory = "../data/results_peer_fig3"
+loo_directory = "../data/results_peer_fig3"
+equal_directory = "../data/results_peer_fig3"
 # THRESHOLDS
 data_thr = {}
 for ep in ['wake', 'rem', 'sws']:
+	# os.system("scp viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/"+ep+"/peer_bsts* ../data/results_peer_fig3/"+ep+"/")
 	data_thr[ep] = {}
 	for f in os.listdir(thr_directory+"/"+ep+"/"):
 		if 'bsts' in f:
@@ -188,28 +67,39 @@ for g in ['ADn', 'Pos']:
 			for s in data[e].iterkeys():
 				data_pr2[g][w][e].append(data[e][s][g][w]['PR2'])
 			data_pr2[g][w][e] = np.vstack(data_pr2[g][w][e])
-
-
-
 # pr2_sleep = pickle.load(open("../data/fig3_pr2_sleep.pickle", 'rb'))
 
-
-# final_data = {}
 # CORRELATION
+# os.system("scp -r viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/wake/peer_corr* ../data/results_peer_fig3/wake/")
 corr = {}
-# for g in ['ADn', 'Pos']:
-# 	final_data[g] = {}
-# 	corr[g] = {}
-# 	for t in ['peer', 'cros']:
-# 		final_data[g][t] = []
-# 		for s in data['pr2'].iterkeys():
-# 			final_data[g][t].append(data['pr2'][s][g][t]['PR2'])
-# 			# if t=='peer':
-# 			# 	tmp = data['pr2'][s][g][t]['corr'].item()  # TO CHANGE
-# 			# 	for k in tmp.iterkeys():
-# 			# 		corr[g][k] = tmp[k]
-# 		final_data[g][t] = np.vstack(final_data[g][t])
+for g in ['ADn', 'Pos']:
+	corr[g] = {}
+	for f in os.listdir(pr2_directory+"/wake/"):
+		if 'corr' in f:
+			tmp = pickle.load(open(pr2_directory+"/wake/"+f, 'rb'))
+			for k in tmp[g]['peer']['corr'].keys():
+				corr[g][k] = tmp[g]['peer']['corr'][k]
 
+# GAIN
+# os.system("scp viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/wake/peer_gain* ../data/results_peer_fig3/wake/")
+datagain = {}
+for f in os.listdir(gain_directory+"/wake/"):
+	if 'gain' in f:
+		datagain[f] = pickle.load(open(gain_directory+"/wake/"+f, 'rb'))			
+
+# LOO
+# os.system("scp viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/wake/peer_loo* ../data/results_peer_fig3/wake/")
+dataloo = {}
+for f in os.listdir(loo_directory+"/wake/"):
+	if 'loo' in f:
+		dataloo[f] = pickle.load(open(gain_directory+"/wake/"+f, 'rb'))			
+
+# EQUAL
+os.system("scp viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/wake/peer_equal* ../data/results_peer_fig3/wake/")
+dataequal = {}
+for f in os.listdir(equal_directory+"/wake/"):
+	if 'equal' in f:
+		dataequal[f] = pickle.load(open(equal_directory+"/wake/"+f, 'rb'))
 
 # #####################################################################
 # # TUNING CURVE
@@ -227,24 +117,40 @@ for f in os.listdir("../data/results_density/wake/"):
 names = pickle.load(open("../data/results_peer_fig3/fig3_names.pickle", 'rb'))
 
 thresholds = {}
+gain = {}
 for g in ['ADn', 'Pos']:
 	thresholds[g] = {}
+	gain[g] = {}
 	for w in ['peer', 'cros']:
 		thresholds[g][w] = {}
-		for s in data_thr['wake'].iterkeys(): # sessions
+		gain[g][w] = {}
+		for s in data_thr['wake'].iterkeys(): # sessions		
 			for k in data_thr['wake'][s][g][w].iterkeys():		
 				thresholds[g][w][k] = data_thr['wake'][s][g][w][k]
+		for s in datagain.iterkeys():
+			for k in datagain[s][g][w].iterkeys():		
+				gain[g][w][k] = datagain[s][g][w][k]
+
+
 
 # need to sort the features by the number of splits
 sorted_features = {}
+sorted_gain = {}
 for g in thresholds.iterkeys():
 	sorted_features[g] = {}
+	sorted_gain[g] = {}
 	for w in thresholds[g].iterkeys():
 		sorted_features[g][w] = {}
+		sorted_gain[g][w] = {}
 		for k in thresholds[g][w].iterkeys(): # PREDICTED NEURONS			
 			count = np.array([len(thresholds[g][w][k][f]) for f in thresholds[g][w][k].iterkeys()])
 			name = np.array([names[g][w][k][int(f[1:])] for f in thresholds[g][w][k].iterkeys()])
 			sorted_features[g][w][k] = np.array([name[np.argsort(count)], np.sort(count)])
+			gain_ = np.array([gain[g][w][k][f] for f in gain[g][w][k].iterkeys()])
+			name = np.array([names[g][w][k][int(f[1:])] for f in gain[g][w][k].iterkeys()])
+			sorted_gain[g][w][k] = np.array([name[np.argsort(gain_)], np.sort(gain_)])
+
+
 
 #####################################################################
 # number of splits versus mean firing rate
@@ -256,17 +162,22 @@ for g in thresholds.iterkeys():
 	plotsplitvar[g] = {}
 	for w in thresholds[g].iterkeys():
 		splitvar[g][w] = {}
-		plotsplitvar[g][w] = {'nsplit':[], 'meanf':[]}
+		plotsplitvar[g][w] = {'nsplit':[], 'meanf':[], 'meanfdiff':[]}
 		for k in thresholds[g][w].iterkeys():
 			mean_firing_rate = []
+			mean_firing_rate_diff = []
 			for n in sorted_features[g][w][k][0]:
 				mean_firing_rate.append(np.mean(tuningc[n][1]))
-			mean_firing_rate = np.array(mean_firing_rate)			
+				mean_firing_rate_diff.append(np.mean(tuningc[k][1])-np.mean(tuningc[n][1]))
+			mean_firing_rate = np.array(mean_firing_rate)
+			mean_firing_rate_diff = np.array(mean_firing_rate_diff)			
 			splitvar[g][w][k] = np.array([mean_firing_rate, sorted_features[g][w][k][1]])
 			plotsplitvar[g][w]['meanf'].append(mean_firing_rate)
+			plotsplitvar[g][w]['meanfdiff'].append(mean_firing_rate_diff)
 			plotsplitvar[g][w]['nsplit'].append(sorted_features[g][w][k][1].astype('float'))
 		plotsplitvar[g][w]['meanf'] = np.hstack(np.array(plotsplitvar[g][w]['meanf']))
 		plotsplitvar[g][w]['nsplit'] = np.hstack(np.array(plotsplitvar[g][w]['nsplit']))
+		plotsplitvar[g][w]['meanfdiff'] = np.hstack(np.array(plotsplitvar[g][w]['meanfdiff']))
 		
 
 #####################################################################
@@ -287,7 +198,7 @@ for g in thresholds.iterkeys():
 			tmp = 2*np.pi - dist[dist>np.pi]
 			dist[dist>np.pi] = tmp
 			plotdistance[g][w]['distance'].append(dist)
-			plotdistance[g][w]['nsplit'].append(sorted_features[g][w][k][1].astype('int'))
+			plotdistance[g][w]['nsplit'].append(sorted_features[g][w][k][1].astype('float'))
 		plotdistance[g][w]['distance'] = np.hstack(np.array(plotdistance[g][w]['distance']))
 		plotdistance[g][w]['nsplit'] = np.hstack(np.array(plotdistance[g][w]['nsplit']))
 
@@ -308,6 +219,54 @@ for g in corr.iterkeys():
 	peercorr[g] = np.array(peercorr[g])
 
 #####################################################################
+# LEAVE ONE OUT
+#####################################################################
+loo = {}
+for g in ['ADn', 'Pos']:
+	loo[g] = {}
+	for s in dataloo.iterkeys():
+		for k in dataloo[s][g]['peer'].iterkeys():
+			for n in dataloo[s][g]['peer'][k].iterkeys():
+				if n in loo[g].keys():
+					loo[g][n].append(dataloo[s][g]['peer'][k][n].flatten())
+				else:
+					loo[g][n] = [dataloo[s][g]['peer'][k][n].flatten()]
+
+meanloo = {}
+for g in loo.keys():
+	meanloo[g] = []
+	for n in loo[g].iterkeys():
+		loo[g][n] = np.hstack(loo[g][n])
+		meanloo[g].append([np.mean(loo[g][n]), scipy.stats.sem(loo[g][n])])
+	meanloo[g] = np.array(meanloo[g])
+
+#####################################################################
+# EQUAL
+#####################################################################
+equal = {}
+for g in ['ADn', 'Pos']:
+	equal[g] = {}	
+	for w in ['peer', 'cros']:
+		equal[g][w] = {}
+		for s in dataequal.iterkeys():		
+			se = s.split(".")[1]
+			equal[g][w][se] = []
+			if g in dataequal[s].keys():			
+				if w in dataequal[s][g].keys():									
+					for k in dataequal[s][g][w].iterkeys():
+						equal[g][w][se].append(dataequal[s][g][w][k])
+			equal[g][w][se] = np.array(equal[g][w][se])
+
+meanequal = {}
+for w in ['peer', 'cros']:
+	meanequal[w] = {}
+	for s in dataequal.keys():
+		se = s.split(".")[1]
+		meanequal[w][se] = []
+		for g in ['ADn', 'Pos']:
+			meanequal[w][se].append(np.mean(equal[g][w][se]))
+
+#####################################################################
 # TIME SPLIT LOADING
 #####################################################################
 time_data = pickle.load(open("../data/fig3_timesplit.pickle", 'rb'))
@@ -320,7 +279,7 @@ def figsize(scale):
 	inches_per_pt = 1.0/72.27                       # Convert pt to inch
 	golden_mean = (np.sqrt(5.0)-1.0)/2.0            # Aesthetic ratio (you could change this)
 	fig_width = fig_width_pt*inches_per_pt*scale    # width in inches
-	fig_height = fig_width*golden_mean*1.5              # height in inches
+	fig_height = fig_width*golden_mean*1.6              # height in inches
 	# fig_height = 4.696
 	fig_size = [fig_width,fig_height]
 	return fig_size
@@ -412,36 +371,43 @@ outerspace = gridspec.GridSpec(1,2, width_ratios =[1.1,0.9], wspace = 0.4)
 # outer = gridspec.GridSpec(outerspace[0], height_ratios=[0.5,1.2])
 
 # SUBPLOT 1 ################################################################
-outer = gridspec.GridSpecFromSubplotSpec(2,1,subplot_spec = outerspace[0], height_ratios=[0.5, 1.3], hspace = 0.3)
+outer = gridspec.GridSpecFromSubplotSpec(2,1,subplot_spec = outerspace[0], height_ratios=[1, 0.8], hspace = 0.3)
 
-subplot(outer[0])
+gs = gridspec.GridSpecFromSubplotSpec(2,2,subplot_spec = outer[0], height_ratios=[1.1, 0.5], hspace = 0.4, wspace = 0.5)
+
+subplot(gs[0,:])
 simpleaxis(gca())
+
+
 y = []
 err = []
 x = [0.0]
 color = []
-for g in ['ADn', 'Pos']:            
-	for w in ['peer', 'cros']:		
+for w in ['peer', 'cros']:		
+	for g in ['ADn', 'Pos']:            	
 		for e in ['wake', 'rem', 'sws']:
 			PR2_art = data_pr2[g][w][e]
 			color.append(colors_[g])
 			y.append(np.mean(PR2_art))
 			err.append(np.std(PR2_art)/np.sqrt(np.size(PR2_art)))
-			x.append(x[-1]+0.62)
+			x.append(x[-1]+0.42)
 		
 		
 		x[-1] += 0.3	
-	x[-1] += 0.3
+	x[-1] += 0.4
 		
 x = np.array(x)[0:-1]
 y = np.array(y)
 err = np.array(err)		
-x_adn = x[0:6]
-y_adn = y[0:6]
-e_adn = err[0:6]
-x_pos = x[6:12]
-y_pos = y[6:12]
-e_pos = err[6:12]
+
+ind_adn = [0,1,2,6,7,8]
+ind_pos = [3,4,5,9,10,11]
+x_adn = x[ind_adn]
+y_adn = y[ind_adn]
+e_adn = err[ind_adn]
+x_pos = x[ind_pos]
+y_pos = y[ind_pos]
+e_pos = err[ind_pos]
 
 ind = [0,3]
 bar(x_adn[ind], y_adn[ind], 0.4, align='center',
@@ -468,7 +434,7 @@ locator_params(nbins=4)
 xlim(np.min(x)-0.3, np.max(x)+0.3)
 ylabel('Pseudo-R2 (XGBoost)')
 xticks(x[[1,4,7,10]], 
-	["AD$\Rightarrow$AD", "Post-S$\Rightarrow$AD", "Post-S$\Rightarrow$Post-S", "AD$\Rightarrow$Post-S"], 
+	["ADn$\Rightarrow$ADn", "PoSub$\Rightarrow$PoSub", "PoSub$\Rightarrow$ADn", "ADn$\Rightarrow$PoSub"], 
 	# rotation = 30, 
 	# ha = 'right'
 	fontsize = 5
@@ -476,30 +442,64 @@ xticks(x[[1,4,7,10]],
 
 legend(bbox_to_anchor=(0.55, 1.19), loc='upper center', ncol=2, frameon = False, columnspacing = 0.6)
 
+title2 = ['WITHIN', 'BETWEEN']
+count = 0
+labels2 = {'peer':['ADn$\Rightarrow$ADn', 'PoSub$\Rightarrow$PoSub'],'cros':['ADn$\Rightarrow$PoSub', 'PoSub$\Rightarrow$ADn']}
+for w in ['peer', 'cros']:
+	subplot(gs[1,count])
+	simpleaxis(gca())	
+	for s in meanequal[w].iterkeys():	
+		plot([0], meanequal[w][s][0], 'o', color=colors_['ADn'], markersize = 4)
+		plot([1], meanequal[w][s][1], 'o', color=colors_['Pos'], markersize = 4)
+		plot([0,1], meanequal[w][s], '-', color = 'grey')
+
+	xticks(fontsize = 4)
+	yticks(fontsize = 4)		
+	# xlabel("Number of neurons", fontsize = 5, labelpad = 0.5)
+	ylabel("p-$R^2$", fontsize = 5)
+	xticks([0, 1], labels2[w], fontsize = 4)
+	xlim(-0.4, 1.4)
+	title(title2[count], fontsize = 6, y = 1.1)
+	count += 1
+	ylim(0, 0.8)
+	locator_params(axis='y', nbins = 5)
+
 # figtext(0.2, -0.2, "ADn $\Rightarrow$ ADn \n Post-S $\Rightarrow$ Post-S \n \scriptsize{(Features $\Rightarrow$ Target)}")
 # figtext(0.6, -0.14, "ADn $\Rightarrow$ Post-S \n Post-S $\Rightarrow$ ADn")
 
 # SUBPLOT 2 ################################################################
-gs = gridspec.GridSpecFromSubplotSpec(3,2,subplot_spec = outer[1], hspace = 0.5, wspace = 0.5)
+gs = gridspec.GridSpecFromSubplotSpec(2,2,subplot_spec = outer[1], hspace = 0.5, wspace = 0.5)
 matplotlib.rcParams.update({"axes.labelsize": 	4,
 							"font.size": 		4,
 							"legend.fontsize": 	4,
 							"xtick.labelsize": 	4,
 							"ytick.labelsize": 	4,   
 							})               # Make the legend/label fonts a little smaller
-title_ = ["ADn $\Rightarrow$ ADn \n(wake)", "Post-S $\Rightarrow$ Post-S \n(wake)"]							
+title_ = ["ADn $\Rightarrow$ ADn \n(wake)", "PoSub $\Rightarrow$ PoSub \n(wake)"]							
 
 count = 0
+
+	
+
+
+
 for g in plotsplitvar.keys():
 	for w in ['peer']:
 		subplot(gs[count])
 		simpleaxis(gca())
 		plot(plotdistance[g][w]['distance'], plotdistance[g][w]['nsplit'], 'o', color = colors_[g], markersize = 1)
-		slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(plotdistance[g][w]['distance'], plotdistance[g][w]['nsplit'])
-		print r_value, p_value
-		x = np.array([np.min(plotdistance[g][w]['distance']), np.max(plotdistance[g][w]['distance'])])
-		plot(x, x*slope + intercept, '-', color = 'black', linewidth = 0.7)
-
+		# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(plotdistance[g][w]['distance'], plotdistance[g][w]['nsplit'])
+		# print r_value, p_value
+		# x = np.array([np.min(plotdistance[g][w]['distance']), np.max(plotdistance[g][w]['distance'])])
+		# plot(x, x*slope + intercept, '-', color = 'black', linewidth = 0.7)
+		x, y = (plotdistance[g][w]['distance'], plotsplitvar[g][w]['nsplit'])
+		nb_bins=5
+		bins = np.linspace(x.min(), x.max()+1e-8, nb_bins+1)
+		index = np.digitize(x, bins).flatten()
+		curve = np.array([np.mean(y[index == i]) for i in xrange(1, nb_bins+1)])
+		xx = bins[0:-1] + (bins[1]-bins[0])/2.
+		plot(xx, curve, 'o-', color = 'black', linewidth = 0.8, markersize = 2.0) 
+		# ax2.set_yticks([], [])			
 		locator_params(nbins=2)				
 		# ticklabel_format(style='sci', axis='x', scilimits=(0,0), fontsize = 4)
 		# ticklabel_format(style='sci', axis='y', scilimits=(0,0), fontsize = 4)
@@ -507,31 +507,37 @@ for g in plotsplitvar.keys():
 		yticks(fontsize = 4)		
 		xlabel("Angular distance", fontsize = 5, labelpad = 0.4)				
 		ylabel("Number of splits", fontsize = 5)
-		title(title_[count], fontsize = 6)#, loc = 'left', y = 1.3)
 		xlim(0, np.pi)
+		ylim(0,)
+		title(title_[count-2], fontsize = 6)#, loc = 'left', y = 1.3)		
 
 
 		subplot(gs[count+2])
 		simpleaxis(gca())		
 		plot(plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'], 'o', color = colors_[g], markersize = 1)
-		slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'])
-		x = np.array([np.min(plotsplitvar[g][w]['meanf']), np.max(plotsplitvar[g][w]['meanf'])])
-		plot(x, x*slope + intercept, '-', color = 'black', linewidth = 0.7)
-		print r_value, p_value
+		# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'])
+		# x = np.array([np.min(plotsplitvar[g][w]['meanf']), np.max(plotsplitvar[g][w]['meanf'])])
+		# plot(x, x*slope + intercept, '-', color = 'black', linewidth = 0.7)
+		# print r_value, p_value
 		xticks(fontsize = 4)
 		yticks(fontsize = 4)		
-		xlabel("Mean firing rate", fontsize = 5, labelpad = 0.5)
+		xlabel("Firing rate", fontsize = 5, labelpad = 0.8)
 		ylabel("Number of splits", fontsize = 5)		
-
-
-		subplot(gs[count+4])
-		simpleaxis(gca())		
-		# plot(peercorr[g][:,0], peercorr[g][:,1], 'o', color = colors_[g], markersize = 1)
-		xticks(fontsize = 4)
-		yticks(fontsize = 4)		
-		xlabel("Angular distance", fontsize = 5, labelpad = 0.5)
-		ylabel("R", fontsize = 5)
+		x, y = (plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'])
+		nb_bins=5
+		bins = np.linspace(x.min(), x.max()+1e-8, nb_bins+1)
+		index = np.digitize(x, bins).flatten()
+		curve = np.array([np.mean(y[index == i]) for i in xrange(1, nb_bins+1)])
 		
+		xx = bins[0:-1] + (bins[1]-bins[0])/2.
+
+		plot(xx, curve, 'o-', color = 'black', linewidth = 0.7, markersize = 2.0) 
+		
+		locator_params(axis='y', nbins = 5)
+		
+		
+
+
 
 		count += 1
 
@@ -546,9 +552,11 @@ matplotlib.rcParams.update({"axes.labelsize": 	6,
 							})               # Make the legend/label fonts a little smaller
 outer = gridspec.GridSpecFromSubplotSpec(3,1,subplot_spec = outerspace[1], hspace = 0.3)
 
-x = np.arange(37)*25 - 18*25
-ind = (x>-350)&(x<350)
+x = np.arange(41)*25 - 20*25
+ind = (x>-450)&(x<450)
+# ind = np.arange(len(x))
 xt = x[ind]
+
 
 subplot(outer[0])
 simpleaxis(gca())		
@@ -558,12 +566,12 @@ for k in xrange(len(time_data[ep])):
 #mean
 plot([0], color = 'none', label = 'Wake')
 plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'])
-ylabel("Density of splits (\%)", labelpad = 8)
+ylabel("Gain (a.u.)", labelpad = 8)
 xlabel("Time (ms)")
-title("AD $\Rightarrow$ Post-S")
+title("ADn $\Rightarrow$ PoSub")
 legend(frameon = False)
 axvline(0, color = 'black', linewidth = 0.8)
-xlim(-325, 325)
+xlim(-425, 425)
 
 
 subplot(outer[1])
@@ -574,11 +582,11 @@ for k in xrange(len(time_data[ep])):
 #mean
 plot([0], color = 'none', label = 'REM sleep')
 plot(xt,time_data[ep].mean(0)[ind], color = colors_['ADn'])
-ylabel("Density of splits (\%)", labelpad = 8)
+ylabel("Gain (a.u.)", labelpad = 8)
 xlabel("Time (ms)")
 legend(frameon = False)
 axvline(0, color = 'black', linewidth = 0.8)
-xlim(-325, 325)
+xlim(-425, 425)
 
 
 subplot(outer[2])
@@ -590,9 +598,9 @@ for k in xrange(len(time_data[ep])):
 #mean
 plot([0], color = 'none', label = 'Slow wave sleep')
 plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'])
-ylabel("Density of splits (\%)", labelpad = 8)
+ylabel("Gain (a.u.)", labelpad = 8)
 xlabel("Time (ms)")
-xlim(-325, 325)
+xlim(-425, 425)
 legend(frameon = False)
 axvline(0, color = 'black', linewidth = 0.8)
 

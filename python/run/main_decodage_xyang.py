@@ -49,7 +49,7 @@ def xgb_decodage(Xr, Yr, Xt):
     params = {'objective': "multi:softprob",
     'eval_metric': "mlogloss", #loglikelihood loss
     'seed': 2925, #for reproducibility
-    'silent': 1,
+    'silent': 0,
     'learning_rate': 0.01,
     'min_child_weight': 2, 
     'n_estimators': 1000,
@@ -58,7 +58,7 @@ def xgb_decodage(Xr, Yr, Xt):
     'gamma': 0.5,
     'num_class':index.max()+1}
 
-    num_round = 40
+    num_round = 50
     bst = xgb.train(params, dtrain, num_round)
     
     ymat = bst.predict(dtest)
@@ -109,18 +109,19 @@ def test_decodage(features, targets, learners):
         
     for method in learners_:    
         print('Running '+method+'...')                              
-        Models[method] = fit_cv(X, Y, method, n_cv = 3)
+        Models[method] = fit_cv(X, Y, method, n_cv = 2)
 
 
     return Models
 
 
 final_data = {}
-for ses in os.listdir("../data/sessions_nosmoothing_200ms/wake/"):
+for ses in os.listdir("../data/sessions_nosmoothing_200ms_allpos/wake/"):
+# for ses in ['boosted_tree.Mouse25-140131.mat']:
 #####################################################################
 # DATA LOADING
 #####################################################################
-    wake_data = scipy.io.loadmat(os.path.expanduser('../data/sessions_nosmoothing_200ms/wake/'+ses))
+    wake_data = scipy.io.loadmat(os.path.expanduser('../data/sessions_nosmoothing_200ms_allpos/wake/'+ses))
     adn = wake_data['ADn'].shape[1]
     pos = wake_data['Pos'].shape[1]
         
@@ -141,6 +142,7 @@ for ses in os.listdir("../data/sessions_nosmoothing_200ms/wake/"):
         for i in ['x', 'y']:
             data[i] = data[i]-np.min(data[i])
             data[i] = data[i]/np.max(data[i])
+
 ########################################################################
 # COMBINATIONS DEFINITIONS
 ########################################################################
@@ -159,41 +161,42 @@ for ses in os.listdir("../data/sessions_nosmoothing_200ms/wake/"):
 # # MAIN LOOP FOR SCORE
 # ########################################################################
 
-        methods = ['xgb_decodage']
-        results = {}
-        score = {}
-        for k in np.sort(combination.keys()):
-            features = combination[k]['features']
-            targets = combination[k]['targets']     
+        # methods = ['xgb_decodage']
+        # results = {}
+        # score = {}
+        # for k in np.sort(combination.keys()):
+        #     features = combination[k]['features']
+        #     targets = combination[k]['targets']     
 
-            y_hat = test_decodage(features, targets, methods)            
+        #     # y_hat = test_decodage(features, targets, methods)            
 
-            # y_hat = pickle.load(open("test_xyang.pickle", 'rb'))
-            sys.exit()
-            from pylab import *
-            figure()
-            plot(data['ang'].values, label = 'real')
-            plot(y_hat[:,0], label = 'pred')
-            legend()
+        #     y_hat = pickle.load(open("../data/data_test_xyang.pickle", 'rb'))
 
-            figure()
-            plot(data['x'].values, data['y'].values, label = 'real')
-            plot(y_hat[:,1], y_hat[:,2], label = 'pred')
-            legend()
+        #     sys.exit()
+        #     from pylab import *
+        #     figure()
+        #     plot(data['ang'].values, label = 'real')
+        #     plot(y_hat[:,0], label = 'pred')
+        #     legend()
 
-            show()
+        #     figure()
+        #     plot(data['x'].values, data['y'].values, label = 'real')
+        #     plot(y_hat[:,1], y_hat[:,2], label = 'pred')
+        #     legend()
 
-            sys.exit()
-            y_hat = test_decodage(features, targets, methods)            
-            results[k] = y_hat
-            score[k] = {}
-            y = data['ang'].values
-            for m in methods:
-                tmp = np.abs(y_hat[m]-y)
-                tmp[tmp>np.pi] = 2*np.pi - tmp[tmp>np.pi]
-                score[k][m] = np.sum(tmp)
+        #     show()
+
+        #     sys.exit()
+        #     y_hat = test_decodage(features, targets, methods)            
+        #     results[k] = y_hat
+        #     score[k] = {}
+        #     y = data['ang'].values
+        #     for m in methods:
+        #         tmp = np.abs(y_hat[m]-y)
+        #         tmp[tmp>np.pi] = 2*np.pi - tmp[tmp>np.pi]
+        #         score[k][m] = np.sum(tmp)
 
             
-        final_data[ses] = {}
-        final_data[ses]['wake'] = {'score':score, 'output':results}
+        # final_data[ses] = {}
+        # final_data[ses]['wake'] = {'score':score, 'output':results}
 
