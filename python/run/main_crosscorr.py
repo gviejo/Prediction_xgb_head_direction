@@ -67,7 +67,7 @@ def compute_cross_correlation(session):
 	data_directory = "/home/guillaume/Dropbox (Peyrache Lab)/Peyrache Lab Team Folder/Data/HDCellData"
 
 	data = {}
-	
+
 
 	data[session] = {}
 
@@ -103,7 +103,7 @@ def compute_cross_correlation(session):
 	spikes_postsub = []
 	for i in shankIndex_postsub:	
 		spikes_postsub.append(spikedata['S'][0][0][0][i][0][0][0][1][0][0][2])		
-	
+
 	###############################################################################################################
 	# BEHAVIORAL EPOCHS
 	###############################################################################################################
@@ -114,7 +114,12 @@ def compute_cross_correlation(session):
 	sleep_post_ep = behepochs['sleepPostEp'][0][0]
 	sleep_post_ep = np.hstack([sleep_post_ep[1],sleep_post_ep[2]])
 	sleep_post_ep_index = behepochs['sleepPostEpIx'][0]
-	sleep_ep = np.vstack((sleep_pre_ep, sleep_post_ep))
+	if len(sleep_pre_ep) and len(sleep_post_ep):
+		sleep_ep = np.vstack((sleep_pre_ep, sleep_post_ep))
+	elif len(sleep_pre_ep):
+		sleep_ep = sleep_pre_ep
+	elif len(sleep_post_ep):
+		sleep_ep = sleep_post_ep
 	# merge sleep ep
 	corresp = sleep_ep[1:,0].astype('int') == sleep_ep[0:-1,1].astype('int')
 	start = sleep_ep[0,0]
@@ -203,8 +208,6 @@ def compute_cross_correlation(session):
 	order = ['wake', 'rem', 'sleep']
 	episode = [wake_ep, rem_ep, sws_ep]
 
-	
-
 	for i in range(len(order)):
 		data[session][order[i]] = {}
 		ep = episode[i]
@@ -232,8 +235,8 @@ def compute_cross_correlation(session):
 			C = crossCorr(ts_postsub[n], ts_thalamus, bin_size, nb_bins)
 			data[session][order[i]][n] = C
 
-	
-	return data
+		
+		return data
 
 
 a = dview.map_sync(compute_cross_correlation, datasets)
