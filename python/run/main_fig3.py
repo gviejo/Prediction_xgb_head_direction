@@ -95,7 +95,7 @@ for f in os.listdir(loo_directory+"/wake/"):
 		dataloo[f] = pickle.load(open(gain_directory+"/wake/"+f, 'rb'))			
 
 # EQUAL
-os.system("scp viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/wake/peer_equal* ../data/results_peer_fig3/wake/")
+# os.system("scp viejo@guillimin.hpc.mcgill.ca:~/results_peer_fig3/wake/peer_equal* ../data/results_peer_fig3/wake/")
 dataequal = {}
 for f in os.listdir(equal_directory+"/wake/"):
 	if 'equal' in f:
@@ -279,7 +279,7 @@ def figsize(scale):
 	inches_per_pt = 1.0/72.27                       # Convert pt to inch
 	golden_mean = (np.sqrt(5.0)-1.0)/2.0            # Aesthetic ratio (you could change this)
 	fig_width = fig_width_pt*inches_per_pt*scale    # width in inches
-	fig_height = fig_width*golden_mean*1.6              # height in inches
+	fig_height = fig_width*golden_mean *0.9             # height in inches
 	# fig_height = 4.696
 	fig_size = [fig_width,fig_height]
 	return fig_size
@@ -363,7 +363,7 @@ labels_plot = [labels[m] for m in methods[0:-1]]
 
 
 figure(figsize = figsize(1))
-outerspace = gridspec.GridSpec(1,2, width_ratios =[1.1,0.9], wspace = 0.4)
+outerspace = gridspec.GridSpec(1,2, width_ratios =[1.2,0.9], wspace = 0.3)
 
 #################################################################
 # LEFT
@@ -371,9 +371,9 @@ outerspace = gridspec.GridSpec(1,2, width_ratios =[1.1,0.9], wspace = 0.4)
 # outer = gridspec.GridSpec(outerspace[0], height_ratios=[0.5,1.2])
 
 # SUBPLOT 1 ################################################################
-outer = gridspec.GridSpecFromSubplotSpec(2,1,subplot_spec = outerspace[0], height_ratios=[1, 0.8], hspace = 0.3)
+# outer = gridspec.GridSpecFromSubplotSpec(2,1,subplot_spec = outerspace[0], height_ratios=[1, 0.8], hspace = 0.3)
 
-gs = gridspec.GridSpecFromSubplotSpec(2,2,subplot_spec = outer[0], height_ratios=[1.1, 0.5], hspace = 0.4, wspace = 0.5)
+gs = gridspec.GridSpecFromSubplotSpec(2,2,subplot_spec = outerspace[0], height_ratios=[1.1, 0.5], hspace = 0.4, wspace = 0.5)
 
 subplot(gs[0,:])
 simpleaxis(gca())
@@ -415,16 +415,16 @@ bar(x_adn[ind], y_adn[ind], 0.4, align='center',
 bar(x_pos[ind], y_pos[ind], 0.4, align='center',
 			ecolor='k', color = colors_['Pos'], alpha=1, ec='w', yerr=e_pos[ind], label = 'Post Subiculum')
 ind = [1,4]
-bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = 'white', edgecolor='black', alpha=1, hatch="////////", linewidth = 0, label = 'REM sleep')
-bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = colors_['ADn'], edgecolor='black', alpha=1, hatch="////////", linewidth = 0)
-bar(x_pos[ind], y_pos[ind], 0.4, align='center', facecolor = colors_['Pos'], edgecolor='black', alpha=1, hatch="////////", linewidth = 0)
+bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = 'white', edgecolor='black', alpha=1, hatch="//////", linewidth = 0, label = 'REM sleep')
+bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = colors_['ADn'], edgecolor='black', alpha=1, hatch="//////", linewidth = 0)
+bar(x_pos[ind], y_pos[ind], 0.4, align='center', facecolor = colors_['Pos'], edgecolor='black', alpha=1, hatch="//////", linewidth = 0)
 bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = 'none', alpha=1, edgecolor='w', yerr=e_adn[ind], ecolor = 'black')
 bar(x_pos[ind], y_pos[ind], 0.4, align='center', facecolor = 'none', alpha=1, edgecolor='w', yerr=e_pos[ind], ecolor = 'black')
 
 ind = [2,5]
-bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = 'white', edgecolor='black', alpha=1, hatch="xxxxxx", linewidth = 0, label = 'Slow wave sleep')
-bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = colors_['ADn'], edgecolor='black', alpha=1, hatch="xxxxxx", linewidth = 0)
-bar(x_pos[ind], y_pos[ind], 0.4, align='center', facecolor = colors_['Pos'], edgecolor='black', alpha=1, hatch="xxxxxx", linewidth = 0)
+bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = 'white', edgecolor='black', alpha=1, hatch="xxxx", linewidth = 0, label = 'Slow wave sleep')
+bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = colors_['ADn'], edgecolor='black', alpha=1, hatch="xxxx", linewidth = 0)
+bar(x_pos[ind], y_pos[ind], 0.4, align='center', facecolor = colors_['Pos'], edgecolor='black', alpha=1, hatch="xxxx", linewidth = 0)
 bar(x_adn[ind], y_adn[ind], 0.4, align='center', facecolor = 'none', alpha=1, edgecolor='w', yerr=e_adn[ind], ecolor = 'black')
 bar(x_pos[ind], y_pos[ind], 0.4, align='center', facecolor = 'none', alpha=1, edgecolor='w', yerr=e_pos[ind], ecolor = 'black')
 
@@ -440,7 +440,7 @@ xticks(x[[1,4,7,10]],
 	fontsize = 5
 	)
 
-legend(bbox_to_anchor=(0.55, 1.19), loc='upper center', ncol=2, frameon = False, columnspacing = 0.6)
+legend(bbox_to_anchor=(0.55, 1.15), loc='upper center', ncol=2, frameon = False, columnspacing = 0.6)
 
 title2 = ['WITHIN', 'BETWEEN']
 count = 0
@@ -456,8 +456,8 @@ for w in ['peer', 'cros']:
 	xticks(fontsize = 4)
 	yticks(fontsize = 4)		
 	# xlabel("Number of neurons", fontsize = 5, labelpad = 0.5)
-	ylabel("p-$R^2$", fontsize = 5)
-	xticks([0, 1], labels2[w], fontsize = 4)
+	ylabel("p-$R^2$", fontsize = 6)
+	xticks([0, 1], labels2[w], fontsize = 5)
 	xlim(-0.4, 1.4)
 	title(title2[count], fontsize = 6, y = 1.1)
 	count += 1
@@ -467,25 +467,28 @@ for w in ['peer', 'cros']:
 # figtext(0.2, -0.2, "ADn $\Rightarrow$ ADn \n Post-S $\Rightarrow$ Post-S \n \scriptsize{(Features $\Rightarrow$ Target)}")
 # figtext(0.6, -0.14, "ADn $\Rightarrow$ Post-S \n Post-S $\Rightarrow$ ADn")
 
-# SUBPLOT 2 ################################################################
-gs = gridspec.GridSpecFromSubplotSpec(2,2,subplot_spec = outer[1], hspace = 0.5, wspace = 0.5)
-matplotlib.rcParams.update({"axes.labelsize": 	4,
-							"font.size": 		4,
-							"legend.fontsize": 	4,
-							"xtick.labelsize": 	4,
-							"ytick.labelsize": 	4,   
+
+#################################################################
+# RIGHT
+#################################################################
+matplotlib.rcParams.update({"axes.labelsize": 	7,
+							"font.size": 		8,
+							"legend.fontsize": 	8,
+							"xtick.labelsize": 	5,
+							"ytick.labelsize": 	5,   
 							})               # Make the legend/label fonts a little smaller
-title_ = ["ADn $\Rightarrow$ ADn \n(wake)", "PoSub $\Rightarrow$ PoSub \n(wake)"]							
+outer = gridspec.GridSpecFromSubplotSpec(2,2,subplot_spec = outerspace[1], hspace = 0.3, wspace = 0.5)
 
 count = 0
 
+title_ = ["ADn $\Rightarrow$ ADn \n(wake)", "PoSub $\Rightarrow$ PoSub \n(wake)"]							
+
+
 	
-
-
 
 for g in plotsplitvar.keys():
 	for w in ['peer']:
-		subplot(gs[count])
+		subplot(outer[count])
 		simpleaxis(gca())
 		plot(plotdistance[g][w]['distance'], plotdistance[g][w]['nsplit'], 'o', color = colors_[g], markersize = 1)
 		# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(plotdistance[g][w]['distance'], plotdistance[g][w]['nsplit'])
@@ -505,14 +508,14 @@ for g in plotsplitvar.keys():
 		# ticklabel_format(style='sci', axis='y', scilimits=(0,0), fontsize = 4)
 		xticks([0, np.pi], ['0', '$\pi$'], fontsize = 4)
 		yticks(fontsize = 4)		
-		xlabel("Angular distance", fontsize = 5, labelpad = 0.4)				
-		ylabel("Number of splits", fontsize = 5)
+		xlabel("Angular distance", fontsize = 6, labelpad = 0.4)				
+		ylabel("Number of splits", fontsize = 7, labelpad = 0.6)
 		xlim(0, np.pi)
 		ylim(0,)
-		title(title_[count-2], fontsize = 6)#, loc = 'left', y = 1.3)		
+		title(title_[count-2], fontsize = 7)#, loc = 'left', y = 1.3)		
 
 
-		subplot(gs[count+2])
+		subplot(outer[count+2])
 		simpleaxis(gca())		
 		plot(plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'], 'o', color = colors_[g], markersize = 1)
 		# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'])
@@ -521,8 +524,8 @@ for g in plotsplitvar.keys():
 		# print r_value, p_value
 		xticks(fontsize = 4)
 		yticks(fontsize = 4)		
-		xlabel("Firing rate", fontsize = 5, labelpad = 0.8)
-		ylabel("Number of splits", fontsize = 5)		
+		xlabel("Firing rate (Hz)", fontsize = 6, labelpad = 0.8)
+		ylabel("Number of splits", fontsize = 7, labelpad = 0.6)		
 		x, y = (plotsplitvar[g][w]['meanf'], plotsplitvar[g][w]['nsplit'])
 		nb_bins=5
 		bins = np.linspace(x.min(), x.max()+1e-8, nb_bins+1)
@@ -541,68 +544,7 @@ for g in plotsplitvar.keys():
 
 		count += 1
 
-#################################################################
-# RIGHT
-#################################################################
-matplotlib.rcParams.update({"axes.labelsize": 	6,
-							"font.size": 		8,
-							"legend.fontsize": 	8,
-							"xtick.labelsize": 	5,
-							"ytick.labelsize": 	5,   
-							})               # Make the legend/label fonts a little smaller
-outer = gridspec.GridSpecFromSubplotSpec(3,1,subplot_spec = outerspace[1], hspace = 0.3)
 
-x = np.arange(41)*25 - 20*25
-ind = (x>-450)&(x<450)
-# ind = np.arange(len(x))
-xt = x[ind]
-
-
-subplot(outer[0])
-simpleaxis(gca())		
-ep = 'wake'
-for k in xrange(len(time_data[ep])):
-	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
-#mean
-plot([0], color = 'none', label = 'Wake')
-plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'])
-ylabel("Gain (a.u.)", labelpad = 8)
-xlabel("Time (ms)")
-title("ADn $\Rightarrow$ PoSub")
-legend(frameon = False)
-axvline(0, color = 'black', linewidth = 0.8)
-xlim(-425, 425)
-
-
-subplot(outer[1])
-simpleaxis(gca())		
-ep = 'rem'
-for k in xrange(len(time_data[ep])):
-	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
-#mean
-plot([0], color = 'none', label = 'REM sleep')
-plot(xt,time_data[ep].mean(0)[ind], color = colors_['ADn'])
-ylabel("Gain (a.u.)", labelpad = 8)
-xlabel("Time (ms)")
-legend(frameon = False)
-axvline(0, color = 'black', linewidth = 0.8)
-xlim(-425, 425)
-
-
-subplot(outer[2])
-simpleaxis(gca())		
-ep = 'sws'
-for k in xrange(len(time_data[ep])):
-	if np.max(time_data[ep][k]) < 80.0:
-		plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
-#mean
-plot([0], color = 'none', label = 'Slow wave sleep')
-plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'])
-ylabel("Gain (a.u.)", labelpad = 8)
-xlabel("Time (ms)")
-xlim(-425, 425)
-legend(frameon = False)
-axvline(0, color = 'black', linewidth = 0.8)
 
 
 savefig("../../figures/fig3.pdf", dpi=900, bbox_inches = 'tight', facecolor = 'white')

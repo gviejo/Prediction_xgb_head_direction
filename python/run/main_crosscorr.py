@@ -212,7 +212,7 @@ def compute_cross_correlation(session):
 		# CROSS CORRELATION
 		##############################################################################################################
 		# pool spike timing of thalamus
-		spikes_thalamus = np.sort(np.vstack(spikes_thalamus).transpose()[0])
+		# spikes_thalamus = np.sort(np.vstack(spikes_thalamus).transpose()[0])
 		order = ['wake', 'rem', 'sleep']
 		episode = [wake_ep, rem_ep, sws_ep]
 
@@ -220,28 +220,37 @@ def compute_cross_correlation(session):
 			data[session][order[i]] = {}
 			ep = episode[i]
 			# restrict spikes to ep for both thalamus and postsub
-			ts_thalamus = []
+			# ts_thalamus = []
+			ts_thalamus = {n:[] for n in range(len(spikes_thalamus))}
 			ts_postsub	= {n:[] for n in range(len(spikes_postsub))}
 			for e in ep:
 				start, stop = e
-				for t in spikes_thalamus:
-					if t > start and t < stop:
-						ts_thalamus.append(t)
+				for n in range(len(spikes_thalamus)):
+					for t in spikes_thalamus[n]:
+						if t > start and t < stop:
+							ts_thalamus[n].append(t)
 				for n in range(len(spikes_postsub)):
 					for t in spikes_postsub[n]:
 						if t > start and t < stop:
 							ts_postsub[n].append(t)
-			ts_thalamus = np.array(ts_thalamus)
+			# ts_thalamus = np.array(ts_thalamus)
+			for n in ts_thalamus.keys():
+				ts_thalamus[n] = np.array(ts_thalamus[n]).flatten()
 			for n in ts_postsub.keys(): 
 				ts_postsub[n] = np.array(ts_postsub[n]).flatten()
 
 
 			# cross correlation for each neuron in post-sub
 			for n in ts_postsub.keys():
-				bin_size = 0.005
-				nb_bins = 200
-				C = crossCorr(ts_postsub[n], ts_thalamus, bin_size, nb_bins)
-				data[session][order[i]][n] = C
+				tmp = []
+				for k in ts_thalamus.keys():
+					bin_size = 0.005
+					nb_bins = 200
+					C = crossCorr(ts_postsub[n], ts_thalamus[k], bin_size, nb_bins)
+					mean_firing_rate = float(len(ts_thalamus[k]))/float(np.sum(np.sum(ep[:,1] - ep[:,0])))
+					tmp.append(C/mean_firing_rate)
+				
+				data[session][order[i]][n] = np.array(tmp)
 
 		
 		return data
@@ -253,14 +262,21 @@ a = dview.map_sync(compute_cross_correlation, datasets)
 
 data = {}
 for i in range(len(a)):
-    for j in a[i].keys():
-        k = j
-    data[k] = a[i][k]
+	if a[i] is not None:
+		for j in a[i].keys():
+			k = j
+		data[k] = a[i][k]
+
+import _pickle as pickle
+with open("../data/fig3_cross_correlation.pickle", 'wb') as f:
+	pickle.dump(data, f, protocol = 2)
 
 ##############################################################################################################
 # PLOT
 ##############################################################################################################
 from pylab import *
+
+times = np.arange(-500, 505, 5)
 
 figure()
 
@@ -270,11 +286,13 @@ for e,i in zip(['wake', 'rem', 'sleep'], range(3)):
 	for s in data.keys():
 		for n in data[s][e].keys():
 			tmp.append(data[s][e][n])
-			plot(data[s][e][n], '-', color = 'grey', alpha = 0.1)
+			# plot(times, data[s][e][n].transpose(), '-', color = 'grey', alpha = 0.3)
 
 	title(e)
-	tmp = np.array(tmp)
+	tmp = np.vstack(tmp)
 	tmp = tmp[~np.isnan(tmp.mean(1))]
-	plot(tmp.mean(0))
+	plot(times, tmp.mean(0))
+
+	fill_between(times, tmp.mean(0)-tmp.var(0), tmp.mean(0)+tmp.var(0), color = 'blue', alpha = 0.4)
 
 show()
