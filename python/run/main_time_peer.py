@@ -46,6 +46,7 @@ def extract_tree_threshold(trees):
 datatosave = {}
 
 episode = ['wake', 'rem', 'sws']
+# episode = ['wake']
 
 for ep in episode:
 
@@ -65,10 +66,15 @@ for ep in episode:
 		# DATA ENGINEERING
 		#####################################################################
 		data 			= 	pd.DataFrame()
-		data['time'] 	= 	np.arange(len(adrien_data['Ang']))		# TODO : import real time from matlab script
+		data['time'] 	= 	np.arange(len(adrien_data['Ang']))		# TODO : import real time from matlab script		
 		# Firing data
 		for i in xrange(adrien_data['Pos'].shape[1]): data['Pos'+'.'+str(i)] = adrien_data['Pos'][:,i]
 		for i in xrange(adrien_data['ADn'].shape[1]): data['ADn'+'.'+str(i)] = adrien_data['ADn'][:,i]
+
+		# cut if longer than 40 min
+		if len(data) > 96000:
+			data = data[0:96000]
+
 
 		#####################################################################
 		# COMBINATIONS DEFINITION
@@ -76,7 +82,7 @@ for ep in episode:
 		adn_neuron = [n for n in data.keys() if 'ADn' in n]
 		pos_neuron = [n for n in data.keys() if 'Pos' in n]
 
-		if len(adn_neuron) >= 10:
+		if len(adn_neuron) >= 7:
 
 			# create shifted spiking activity from -500 to 500 ms with index 0 to 40 (20 for t = 0 ms) for all ADn_neuron
 			# remove 20 points at the beginning and 20 points at the end
@@ -85,7 +91,8 @@ for ep in episode:
 			for n,i in zip(adn_neuron, range(len(adn_neuron))):	
 				tmp = data[n]
 				for j in range(0,41):
-					time_shifted[:,i,j] = tmp[40-j:duration-j]
+					# time_shifted[:,i,j] = tmp[40-j:duration-j]
+					time_shifted[:,i,j] = tmp[j:duration-40+j]
 
 
 			combination = {}
@@ -105,8 +112,8 @@ for ep in episode:
 			    'silent': 1,
 			    'learning_rate': 0.05,
 			    'min_child_weight': 2, 'n_estimators': 580,
-			    'subsample': 0.6, 'max_depth': 5, 'gamma': 0.4}        
-			num_round = 4
+			    'subsample': 0.6, 'max_depth': 2, 'gamma': 0.4}        
+			num_round = 30
 
 			for k in combination.keys():
 				features = combination[k]['features']
@@ -128,6 +135,13 @@ for ep in episode:
 				thresholds[i] = extract_tree_threshold(bsts[i])		
 
 			#####################################################################
+			# EXTRACT GAIN VALUE
+			#####################################################################
+			gain = {}
+			for i in bsts.iterkeys():
+				gain[i] = bsts[i].get_score(importance_type = 'gain')
+
+			#####################################################################
 			# CONVERT TO TIMING OF SPLIT POSITION
 			#####################################################################
 			time_count = np.zeros((len(pos_neuron), len(adn_neuron), 41))
@@ -139,10 +153,20 @@ for ep in episode:
 
 			time_count = time_count.reshape(len(pos_neuron)*len(adn_neuron), 41)
 
-			datatosave[ep].append(time_count)
+			gain_value = np.zeros((len(pos_neuron), len(adn_neuron), 41))
+			index = np.repeat(np.arange(len(adn_neuron)), 41)
+			for n in gain.iterkeys():
+				g = gain[n]
+				for s in g.keys():
+					gain_value[int(n.split(".")[1]), index[int(s[1:])], int(s[1:])%41] = g[s]
+
+			gain_value = gain_value.reshape(len(pos_neuron)*len(adn_neuron), 41)
+
+
+			datatosave[ep].append(time_count*gain_value)
 
 	datatosave[ep] = np.vstack(datatosave[ep])
 
 
-with open("../data/fig4_time_peer_guillaume.pickle", 'wb') as f:
-	pickle.dump(datatosave, f)
+	with open("../data/fig4_time_peer_"+ep+"_guillaume.pickle", 'wb') as f:
+		pickle.dump(datatosave[ep], f)

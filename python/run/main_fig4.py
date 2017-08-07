@@ -28,7 +28,11 @@ import xgboost as xgb
 #####################################################################
 # TIME SPLIT LOADING
 #####################################################################
-time_data = pickle.load(open("../data/fig3_timesplit.pickle", 'rb'))
+# time_data = pickle.load(open("../data/fig3_timesplit.pickle", 'rb'))
+time_data = {}
+for ep in ['wake', 'rem', 'sws']:
+	time_data[ep] = pickle.load(open("../data/fig4_time_peer_"+ep+"_guillaume.pickle"))
+
 
 #####################################################################
 # CROSS CORR LOADING
@@ -49,7 +53,7 @@ for e,i in zip(['wake', 'rem', 'sleep'], range(3)):
 
 corr_data['sws'] = corr_data['sleep']
 
-# sys.exit()
+
 
 
 #####################################################################
@@ -177,16 +181,22 @@ for e,i in zip(['wake', 'rem', 'sleep'], range(3)):
 	ai.axvline(0, color = 'black')
 
 ###############################################
+def normalize(array):
+	array -= np.vstack(array.min(1))
+	array /= np.vstack(array.max(1))
+	return array
+
+
 
 
 subplot(outer[1,0])
 simpleaxis(gca())		
 ep = 'wake'
-for k in xrange(len(time_data[ep])):
-	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
+# for k in xrange(len(time_data[ep])):
+# 	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
 #mean
 plot([0], color = 'none', label = 'Wake')
-plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'])
+plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'], alpha = 1, linewidth = 2)
 ylabel("Gain (a.u.) (ADn $\Rightarrow$ PoSub)", labelpad = 8)
 xlabel("Time (ms)")
 # title("ADn $\Rightarrow$ PoSub")
@@ -199,17 +209,18 @@ xticks([-400,-200,0,200,400],[-400,-200,0,200,400])
 subplot(outer[1,1])
 simpleaxis(gca())		
 ep = 'rem'
-for k in xrange(len(time_data[ep])):
-	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
+# for k in xrange(len(time_data[ep])):
+# 	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
 #mean
 plot([0], color = 'none', label = 'REM sleep')
-plot(xt,time_data[ep].mean(0)[ind], color = colors_['ADn'])
+plot(xt,time_data[ep].mean(0)[ind], color = colors_['ADn'], linewidth = 2)
 ylabel("Gain (a.u.) (ADn $\Rightarrow$ PoSub)", labelpad = 8)
 xlabel("Time (ms)")
 # legend(frameon = False)
 axvline(0, color = 'black', linewidth = 0.8)
 # xlim(-425, 425)
 xticks([-400,-200,0,200,400],[-400,-200,0,200,400])
+
 
 subplot(outer[1,2])
 simpleaxis(gca())		
@@ -219,7 +230,7 @@ for k in xrange(len(time_data[ep])):
 		plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
 #mean
 plot([0], color = 'none', label = 'Slow wave sleep')
-plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'])
+plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'], linewidth = 2)
 ylabel("Gain (a.u.) (ADn $\Rightarrow$ PoSub)", labelpad = 8)
 xlabel("Time (ms)")
 # xlim(-425, 425)
@@ -227,62 +238,43 @@ xlabel("Time (ms)")
 axvline(0, color = 'black', linewidth = 0.8)
 xticks([-400,-200,0,200,400],[-400,-200,0,200,400])
 
-####################################################
-def normalize(array):
-	array -= np.vstack(array.min(1))
-	array /= np.vstack(array.max(1))
-	return array
+# ####################################################
 
-subplot(outer[1,3])
-simpleaxis(gca())		
-for ep in ['wake', 'rem', 'sws']:
-	
-	time_data[ep] = normalize(time_data[ep])
-	# corr_data[ep] = normalize(corr_data[ep])
-	
-	c1, bins1 = np.histogram(time_data[ep].sum(1), 10)
-	# c2, bins2 = np.histogram(corr_data[ep].sum(1)/5.)
-	
-	plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
-	# plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
-	
-xlabel('Measure precision (a.u.)')
-ylabel('$\%$')
 
-subplot(outer[0,3])
-simpleaxis(gca())		
-for ep in ['wake', 'rem', 'sws']:
-	# time_data[ep] = normalize(time_data[ep])
-
-	corr_data[ep] = corr_data[ep][~np.isnan(corr_data[ep].mean(1))]
-
-	corr_data[ep] = normalize(corr_data[ep])
-
-	# c1, bins1 = np.histogram(time_data[ep].sum(1))
-	c2, bins2 = np.histogram(corr_data[ep].sum(1)/5., 100)
-
-	# plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
-	plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
-
-xlabel('Measure precision (a.u.)')
-ylabel('$\%$')
-
-# subplot(outer[2,2])
+# subplot(outer[1,3])
 # simpleaxis(gca())		
-# ep = 'sws'
-# time_data[ep] = normalize(time_data[ep])
-# corr_data[ep] = normalize(corr_data[ep])
-
-# corr_data[ep] = corr_data[ep][~np.isnan(corr_data[ep].mean(1))]
-
-# c1, bins1 = np.histogram(time_data[ep].sum(1))
-# c2, bins2 = np.histogram(corr_data[ep].sum(1)/5.)
-
-# plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'Gain (XGB)', color = colors_['ADn'])
-# plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'Cross-correlation', color = 'green')
+# for ep in ['wake', 'rem', 'sws']:
+	
+# 	time_data[ep] = normalize(time_data[ep])
+# 	# corr_data[ep] = normalize(corr_data[ep])
+	
+# 	c1, bins1 = np.histogram(time_data[ep].sum(1), 10)
+# 	# c2, bins2 = np.histogram(corr_data[ep].sum(1)/5.)
+	
+# 	plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
+# 	# plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
+	
 # xlabel('Measure precision (a.u.)')
 # ylabel('$\%$')
-# legend(bbox_to_anchor=(0.6, 1.1), loc='upper center', ncol=1, frameon = False, fontsize = 7)
+
+# subplot(outer[0,3])
+# simpleaxis(gca())		
+# for ep in ['wake', 'rem', 'sws']:
+# 	# time_data[ep] = normalize(time_data[ep])
+
+# 	corr_data[ep] = corr_data[ep][~np.isnan(corr_data[ep].mean(1))]
+
+# 	corr_data[ep] = normalize(corr_data[ep])
+
+# 	# c1, bins1 = np.histogram(time_data[ep].sum(1))
+# 	c2, bins2 = np.histogram(corr_data[ep].sum(1)/5., 100)
+
+# 	# plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
+# 	plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
+
+# xlabel('Measure precision (a.u.)')
+# ylabel('$\%$')
+
 
 savefig("../../figures/fig4.pdf", dpi=900, bbox_inches = 'tight', facecolor = 'white')
 os.system("evince ../../figures/fig4.pdf &")
