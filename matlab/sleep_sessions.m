@@ -7,14 +7,14 @@ for i=1:size(file)
         
         data_dir = fullfile(path_to_data,char(dset));        
         cd(data_dir);        
-        binSize = 0.200; %in seconds        
+        binSize = 0.025; %in seconds        
         
         [~,fbasename,~] = fileparts(pwd);
         %when the animal was exploring the arena
         load('Analysis/BehavEpochs.mat','sleepPreEp','sleepPostEp');
         sleepEp = union(sleepPreEp,sleepPostEp);
-        stateEp = LoadEpoch(fbasename,'REM');
-        %stateEp = LoadEpoch(fbasename,'SWS');
+        %stateEp = LoadEpoch(fbasename,'REM');
+        stateEp = LoadEpoch(fbasename,'SWS');
         dataEp = intersect(sleepEp,stateEp);        
         load('Analysis/SpikeData.mat', 'S', 'shank');        
         load('Analysis/HDCells.mat');         
@@ -70,5 +70,5 @@ for i=1:size(file)
         
         tmp = strsplit(char(dset), '/');    
         
-        save(strcat('/home/guillaume/Prediction_ML_GLM/python/data/sessions_nosmoothing_200ms/rem/boosted_tree.', char(tmp(2)), '.mat'), '-struct', 'data_to_save');    
+        save(strcat('/home/guillaume/Prediction_xgb_head_direction/python/data/sessions_nosmoothing_25ms/sws/boosted_tree.', char(tmp(2)), '.mat'), '-struct', 'data_to_save');    
 end
