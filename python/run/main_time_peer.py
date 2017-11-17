@@ -145,7 +145,7 @@ for ep in episode:
 			gain = {}
 			for i in bsts.iterkeys():
 				gain[i] = bsts[i].get_score(importance_type = 'gain')
-			sys.exit()
+			
 			#####################################################################
 			# CONVERT TO TIMING OF SPLIT POSITION
 			#####################################################################
