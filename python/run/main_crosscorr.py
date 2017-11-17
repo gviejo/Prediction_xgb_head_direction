@@ -8,7 +8,8 @@ import ipyparallel
 import os, sys
 
 data_directory = "/home/guillaume/Dropbox (Peyrache Lab)/Peyrache Lab Team Folder/Data/HDCellData"
-datasets = np.loadtxt(data_directory+'/datasets_PosData.list', delimiter = '\n', dtype = str, comments = '#')
+# datasets = np.loadtxt(data_directory+'/datasets_PosData.list', delimiter = '\n', dtype = str, comments = '#')
+datasets = np.loadtxt(data_directory+'/datasets_AdnPostSub2.list', delimiter = '\n', dtype = str, comments = '#')
 
 clients = ipyparallel.Client()
 print(clients.ids)
@@ -111,7 +112,8 @@ def compute_cross_correlation(session):
 	for i in np.intersect1d(hdIndex, shankIndex_postsub):
 		spikes_postsub.append(spikedata['S'][0][0][0][i][0][0][0][1][0][0][2])	
 
-	if len(spikes_postsub) >= 7 and len(spikes_thalamus) >= 7:
+	# if len(spikes_postsub) >= 7 and len(spikes_thalamus) >= 7:
+	if len(spikes_thalamus) >= 7:		
 		###############################################################################################################
 		# BEHAVIORAL EPOCHS
 		###############################################################################################################
@@ -170,15 +172,18 @@ def compute_cross_correlation(session):
 			index = np.logical_or(sws == 2, sws == 3)*1.0
 			index = index[1:] - index[0:-1]
 			start = np.where(index == 1)[0]+1
-			stop = np.where(index == -1)[0]
+			stop = np.where(index == -1)[0]			
 			if len(start) == len(stop):
 				sws_ep = np.hstack((np.vstack(start),
 								np.vstack(stop))).astype('float')
 			else :
-				m = np.min([len(start), len(stop)])
-				sws_ep = np.hstack((np.vstack(start[0:m]),
-								np.vstack(stop[0:m]))).astype('float')
-
+				if start[0] > stop[0]:					
+					sws_ep = np.hstack((np.vstack(np.array([0.0]+list(start))),
+								np.vstack(stop))).astype('float')
+				elif start[0] < stop[0]:
+					sws_ep = np.hstack((np.vstack(start),
+								np.vstack(stop[0:-1]))).astype('float')
+		
 		# load REM EP
 		if session.split("/")[1]+'.sts.REM' in os.listdir(data_directory+'/'+session+'/'):
 			rem = np.genfromtxt(data_directory+'/'+session+'/'+session.split("/")[1]+'.sts.REM')
@@ -187,8 +192,18 @@ def compute_cross_correlation(session):
 			rem = scipy.io.loadmat(data_directory+'/'+session+'/'+session.split("/")[1]+'-states.mat')['states'][0]
 			index = (rem == 5)*1.0
 			index = index[1:] - index[0:-1]
-			rem_ep = np.hstack((np.vstack(np.where(index == 1)[0]),
-								np.vstack(np.where(index == -1)[0]))).astype('float')
+			start = np.where(index == 1)[0]+1
+			stop = np.where(index == -1)[0]
+			if len(start) == len(stop):
+				rem_ep = np.hstack((np.vstack(start),
+									np.vstack(stop))).astype('float')
+			else:
+				if start[0] > stop[0]:
+					rem_ep = np.hstack((np.vstack(np.array([0.0]+list(start))),
+										np.vstack(stop))).astype('float')
+				elif start[0] < stop[0]:
+					rem_ep = np.hstack((np.vstack(start),
+										np.vstack(stop[0:-1]))).astype('float')
 
 		# restrict sws_ep and rem_ep by sleep_ep
 		tmp1 = []
@@ -212,7 +227,7 @@ def compute_cross_correlation(session):
 		# CROSS CORRELATION
 		##############################################################################################################
 		# pool spike timing of thalamus
-		# spikes_thalamus = np.sort(np.vstack(spikes_thalamus).transpose()[0])
+		spikes_thalamus = np.sort(np.vstack(spikes_thalamus).transpose()[0])
 		order = ['wake', 'rem', 'sleep']
 		episode = [wake_ep, rem_ep, sws_ep]
 
@@ -244,13 +259,13 @@ def compute_cross_correlation(session):
 			for n in ts_postsub.keys():
 				tmp = []
 				for k in ts_thalamus.keys():
-					bin_size = 0.005
-					nb_bins = 200
+					bin_size = 0.025	#0.005 
+					nb_bins = 40	#200
 					C = crossCorr(ts_postsub[n], ts_thalamus[k], bin_size, nb_bins)
 					mean_firing_rate = float(len(ts_thalamus[k]))/float(np.sum(np.sum(ep[:,1] - ep[:,0])))
 					tmp.append(C/mean_firing_rate)
 				
-				data[session][order[i]][n] = np.array(tmp)
+				data[session][order[i]][n] = np.array(tmp).mean(0)
 
 		
 		return data
@@ -276,7 +291,7 @@ with open("../data/fig3_cross_correlation.pickle", 'wb') as f:
 ##############################################################################################################
 from pylab import *
 
-times = np.arange(-500, 505, 5)
+times = np.arange(-500, 505, 25)
 
 figure()
 

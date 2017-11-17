@@ -38,11 +38,9 @@ for ep in ['wake', 'rem', 'sws']:
 # CROSS CORR LOADING
 #####################################################################
 cross_corr_data = pickle.load(open("../data/fig3_cross_correlation.pickle", 'rb'))
-
-times = np.arange(-500, 505, 5)
-
+# times = np.arange(-500, 505, 5)
+times = np.arange(-500, 525, 25)
 corr_data = {}
-
 for e,i in zip(['wake', 'rem', 'sleep'], range(3)):	
 	corr_data[e] = []
 	for s in cross_corr_data.keys():
@@ -50,9 +48,9 @@ for e,i in zip(['wake', 'rem', 'sleep'], range(3)):
 			corr_data[e].append(cross_corr_data[s][e][n])			
 
 	corr_data[e] = np.vstack(corr_data[e])
-
 corr_data['sws'] = corr_data['sleep']
-
+index = ~np.isnan(corr_data['sws'].mean(1))
+for ep in ['wake', 'rem', 'sws'] : corr_data[ep] = corr_data[ep][index]
 
 
 
@@ -193,10 +191,14 @@ subplot(outer[1,0])
 simpleaxis(gca())		
 ep = 'wake'
 # for k in xrange(len(time_data[ep])):
-# 	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
+	# if np.max(time_data[ep][k]) < 80.0:
+		# plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
 #mean
 plot([0], color = 'none', label = 'Wake')
 plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'], alpha = 1, linewidth = 2)
+m = time_data[ep].mean(0)[ind]
+v = scipy.stats.sem(time_data[ep])[ind]
+# fill_between(xt, m-v, m+v, color = colors_['ADn'], alpha = 0.2, linewidth = 0.0)
 ylabel("Gain (a.u.) (ADn $\Rightarrow$ PoSub)", labelpad = 8)
 xlabel("Time (ms)")
 # title("ADn $\Rightarrow$ PoSub")
@@ -210,7 +212,8 @@ subplot(outer[1,1])
 simpleaxis(gca())		
 ep = 'rem'
 # for k in xrange(len(time_data[ep])):
-# 	plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
+ 	# if np.max(time_data[ep][k]) < 80.0:
+		# plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
 #mean
 plot([0], color = 'none', label = 'REM sleep')
 plot(xt,time_data[ep].mean(0)[ind], color = colors_['ADn'], linewidth = 2)
@@ -225,9 +228,9 @@ xticks([-400,-200,0,200,400],[-400,-200,0,200,400])
 subplot(outer[1,2])
 simpleaxis(gca())		
 ep = 'sws'
-for k in xrange(len(time_data[ep])):
-	if np.max(time_data[ep][k]) < 80.0:
-		plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
+# for k in xrange(len(time_data[ep])):
+	# if np.max(time_data[ep][k]) < 80.0:
+		# plot(xt, time_data[ep][k][ind], color = colors_['ADn'], alpha = 0.1, linewidth = 0.5)
 #mean
 plot([0], color = 'none', label = 'Slow wave sleep')
 plot(xt, time_data[ep].mean(0)[ind], color = colors_['ADn'], linewidth = 2)
@@ -241,39 +244,71 @@ xticks([-400,-200,0,200,400],[-400,-200,0,200,400])
 # ####################################################
 
 
-# subplot(outer[1,3])
-# simpleaxis(gca())		
-# for ep in ['wake', 'rem', 'sws']:
+subplot(outer[1,3])
+simpleaxis(gca())		
+for ep in ['wake', 'rem', 'sws']:
 	
-# 	time_data[ep] = normalize(time_data[ep])
-# 	# corr_data[ep] = normalize(corr_data[ep])
+	time_data[ep] = normalize(time_data[ep])
+	# corr_data[ep] = normalize(corr_data[ep])
 	
-# 	c1, bins1 = np.histogram(time_data[ep].sum(1), 10)
-# 	# c2, bins2 = np.histogram(corr_data[ep].sum(1)/5.)
+	c1, bins1 = np.histogram(time_data[ep].sum(1), 10)
+	# c2, bins2 = np.histogram(corr_data[ep].sum(1)/5.)
 	
-# 	plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
-# 	# plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
+	plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
+	# plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
 	
-# xlabel('Measure precision (a.u.)')
-# ylabel('$\%$')
+xlabel('Measure precision (a.u.)')
+ylabel('$\%$')
 
-# subplot(outer[0,3])
-# simpleaxis(gca())		
-# for ep in ['wake', 'rem', 'sws']:
-# 	# time_data[ep] = normalize(time_data[ep])
+subplot(outer[0,3])
+simpleaxis(gca())		
+for ep in ['wake', 'rem', 'sws']:
+	# time_data[ep] = normalize(time_data[ep])
 
-# 	corr_data[ep] = corr_data[ep][~np.isnan(corr_data[ep].mean(1))]
+	corr_data[ep] = corr_data[ep][~np.isnan(corr_data[ep].mean(1))]
 
-# 	corr_data[ep] = normalize(corr_data[ep])
+	corr_data[ep] = normalize(corr_data[ep])
 
-# 	# c1, bins1 = np.histogram(time_data[ep].sum(1))
-# 	c2, bins2 = np.histogram(corr_data[ep].sum(1)/5., 100)
+	# c1, bins1 = np.histogram(time_data[ep].sum(1))
+	c2, bins2 = np.histogram(corr_data[ep].sum(1)/5., 10)
 
-# 	# plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
-# 	plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
+	# plot(bins1[0:-1], c1/float(c1.sum())*100.0, label = 'xgboost', color = colors_['ADn'])
+	plot(bins2[0:-1], c2/float(c2.sum())*100.0, label = 'correlation', color = 'green')
 
-# xlabel('Measure precision (a.u.)')
-# ylabel('$\%$')
+xlabel('Measure precision (a.u.)')
+ylabel('$\%$')
+
+
+# allsplits = np.vstack([time_data[ep] for ep in time_data.keys()])
+# # normalize allsplits
+# allsplits = allsplits - np.vstack(allsplits.min(1))
+# allsplits = allsplits / np.vstack(allsplits.max(1))
+
+# allcorr = np.vstack([corr_data[ep] for ep in time_data.keys()])
+# from sklearn.decomposition import PCA
+# pca = PCA(n_components = allsplits.shape[1])
+# newsplits = pca.fit_transform(allsplits).reshape(3, 82, 41)
+
+# pca2 = PCA(n_components = allcorr.shape[1])
+# newcorr = pca2.fit_transform(allcorr).reshape(3, 69, 41)
+
+# allcorr = np.vstack([time_data[ep] for ep in time_data.keys()])
+
+# from pylab import *
+# figure()
+# plot(newsplits[0,:,0],newsplits[0,:,1], 'o')
+# plot(newsplits[1,:,0],newsplits[1,:,1], 'o')
+# plot(newsplits[2,:,0],newsplits[2,:,1], 'o')
+
+# figure()
+# plot(newcorr[0,:,0],newcorr[0,:,1], 'o')
+# plot(newcorr[1,:,0],newcorr[1,:,1], 'o')
+# plot(newcorr[2,:,0],newcorr[2,:,1], 'o')
+
+# show()
+# sys.exit()
+# # time_data['wake'] = time_data['wake']/np.vstack(time_data['wake'].max(1))
+
 
 
 savefig("../../figures/fig4.pdf", dpi=900, bbox_inches = 'tight', facecolor = 'white')

@@ -9,7 +9,7 @@ for i = 1:size(file)
     dset = file(i)               
     data_dir = fullfile(path_to_data, char(dset));
     cd(data_dir);
-    binSize = 0.100; %in seconds
+    binSize = 0.005; %in seconds
     load('Analysis/BehavEpochs.mat','wakeEp');
     load('Analysis/SpikeData.mat', 'S', 'shank');
     load('Analysis/HDCells.mat'); 
@@ -30,34 +30,34 @@ for i = 1:size(file)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     hdC = hdCellStats(:,end)==1;    
     %Who were the hd cells recorded in the thalamus?
-    %thIx = hdC & ismember(shank,shankStructure{'thalamus'});
-    thIx = ismember(shank,shankStructure{'thalamus'});
+    thIx = hdC & ismember(shank,shankStructure{'thalamus'});
+%     thIx = ismember(shank,shankStructure{'thalamus'});
     %ordering their prefered direction
-    %[~,prefAngThIx] = sort(hdCellStats(thIx,1));
+    [~,prefAngThIx] = sort(hdCellStats(thIx,1));
     %Who were the hd cells recorded in the postsub?
-    %poIx = hdC & ismember(shank,shankStructure{'postsub'});
-    poIx = ismember(shank,shankStructure{'postsub'});
+    poIx = hdC & ismember(shank,shankStructure{'postsub'});
+%     poIx = ismember(shank,shankStructure{'postsub'});
     %ordering their prefered direction
-    %[~,prefAngPoIx] = sort(hdCellStats(poIx,1));
+    [~,prefAngPoIx] = sort(hdCellStats(poIx,1));
     %Restrict exploration to times were the head-direction was correctly
     %detected (you need to detect the blue and red leds, sometimes one of  the
     %two is just not visible)
-    %wakeEp  = intersect(wakeEp,angGoodEp);
+    wakeEp  = intersect(wakeEp,angGoodEp);
     
     %Restrict all data to wake (i.e. exploration)
     S       = Restrict(S,wakeEp);
-%     ang     = Restrict(ang,wakeEp);
-%     X       = Restrict(X,wakeEp);
-%     Y       = Restrict(Y,wakeEp);
-%     linSpd  = Restrict(linSpd,wakeEp);
+     ang     = Restrict(ang,wakeEp);
+     X       = Restrict(X,wakeEp);
+     Y       = Restrict(Y,wakeEp);
+%      linSpd  = Restrict(linSpd,wakeEp);
     %reinitialize indices (there may be hd cells that were not in the thalamus
     %nor in 0the postub. Well, actually it's not possible knowing the structure
     %of this dataset, but you never know)
-%     hdC     = thIx | poIx;
-%     thIx    = thIx(hdC);
-%     poIx    = poIx(hdC);
+     hdC     = thIx | poIx;
+     thIx    = thIx(hdC);
+     poIx    = poIx(hdC);
     %and restrict spike data to hd cells
-%     S = S(hdC);
+     S = S(hdC);
     %Bin it!
     Q       = MakeQfromS(S,binSize);
     Q       = Restrict(Q,ep);
@@ -66,8 +66,8 @@ for i = 1:size(file)
     dQadn   = dQ(:,thIx);
     dQpos   = dQ(:,poIx);
     smWd = 2.^(0:8);
-    dQadn   = gaussFilt(dQadn,5,0); 
-    dQpos   = gaussFilt(dQpos,5,0);
+%     dQadn   = gaussFilt(dQadn,5,0); 
+%     dQpos   = gaussFilt(dQpos,5,0);
    
     %Note to regress spike Data to position, you need to get the same timestamps for the two measures. Easy:
     Xq = Restrict(X,Q);
@@ -83,6 +83,6 @@ for i = 1:size(file)
     y = [y n];
     
     tmp = strsplit(char(dset), '/');    
-    save(strcat('/home/guillaume/Prediction_xgb_head_direction/python/data/sessions_smoothing_100ms_allneuron/wake/boosted_tree.', char(tmp(2)), '.mat'), '-struct', 'data_to_save');
+    save(strcat('/home/guillaume/Prediction_xgb_head_direction/python/data/sessions_nosmoothing_5ms/wake/boosted_tree.', char(tmp(2)), '.mat'), '-struct', 'data_to_save');
 end
     
