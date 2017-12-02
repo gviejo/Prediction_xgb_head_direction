@@ -144,7 +144,7 @@ for ses in os.listdir("../data/sessions_nosmoothing_200ms/wake/"):
     adn = wake_data['ADn'].shape[1]
     pos = wake_data['Pos'].shape[1]
     
-    if adn >= 7 and pos >= 7:   
+    if adn >= 5 and pos >= 5:   
 #####################################################################
 # DATA ENGINEERING
 #####################################################################
@@ -197,41 +197,43 @@ for ses in os.listdir("../data/sessions_nosmoothing_200ms/wake/"):
         final_data[ses]['real'] = y
         final_data[ses]['wake'] = {'score':score, 'output':results}
 
+# # # ########################################################################
+# # # # TESTING WITH REM 30 min
+# # # ########################################################################
+#         rem_data = scipy.io.loadmat(os.path.expanduser('../data/sessions_nosmoothing_100ms/rem/'+ses))
+#         remdata            =   pd.DataFrame()        
+#         # Firing data
+#         for i in xrange(rem_data['Pos'].shape[1]): remdata['Pos'+'.'+str(i)] = rem_data['Pos'][:18000,i]
+#         for i in xrange(rem_data['ADn'].shape[1]): remdata['ADn'+'.'+str(i)] = rem_data['ADn'][:18000,i]
+#         for g in ['ADn', 'Pos']:
+#             features = combination[g]['features']
+#             target = combination[g]['targets']
+#             Xr = data[features].values
+#             Yr = data[target].values
+#             Xt = remdata[features].values
+#             Yt = xgb_decodage(Xr, Yr, Xt)
+
+#         final_data[ses]['rem'] = {'output':Yt}
+
 # # ########################################################################
-# # # TESTING WITH REM 30 min
+# # # TESTING WITH SWS 30 min
 # # ########################################################################
-        rem_data = scipy.io.loadmat(os.path.expanduser('../data/sessions_nosmoothing_100ms/rem/'+ses))
-        remdata            =   pd.DataFrame()        
-        # Firing data
-        for i in xrange(rem_data['Pos'].shape[1]): remdata['Pos'+'.'+str(i)] = rem_data['Pos'][:18000,i]
-        for i in xrange(rem_data['ADn'].shape[1]): remdata['ADn'+'.'+str(i)] = rem_data['ADn'][:18000,i]
-        for g in ['ADn', 'Pos']:
-            features = combination[g]['features']
-            target = combination[g]['targets']
-            Xr = data[features].values
-            Yr = data[target].values
-            Xt = remdata[features].values
-            Yt = xgb_decodage(Xr, Yr, Xt)
+#         sws_data = scipy.io.loadmat(os.path.expanduser('../data/sessions_nosmoothing_100ms/sws/'+ses))
+#         swsdata            =   pd.DataFrame()        
+#         # Firing data
+#         for i in xrange(sws_data['Pos'].shape[1]): swsdata['Pos'+'.'+str(i)] = sws_data['Pos'][:18000,i]
+#         for i in xrange(sws_data['ADn'].shape[1]): swsdata['ADn'+'.'+str(i)] = sws_data['ADn'][:18000,i]
+#         for g in ['ADn', 'Pos']:
+#             features = combination[g]['features']
+#             target = combination[g]['targets']
+#             Xr = data[features].values
+#             Yr = data[target].values
+#             Xt = swsdata[features].values
+#             Yt = xgb_decodage(Xr, Yr, Xt)
 
-        final_data[ses]['rem'] = {'output':Yt}
+#         final_data[ses]['sws'] = {'output':Yt}        
 
-# ########################################################################
-# # TESTING WITH SWS 30 min
-# ########################################################################
-        sws_data = scipy.io.loadmat(os.path.expanduser('../data/sessions_nosmoothing_100ms/sws/'+ses))
-        swsdata            =   pd.DataFrame()        
-        # Firing data
-        for i in xrange(sws_data['Pos'].shape[1]): swsdata['Pos'+'.'+str(i)] = sws_data['Pos'][:18000,i]
-        for i in xrange(sws_data['ADn'].shape[1]): swsdata['ADn'+'.'+str(i)] = sws_data['ADn'][:18000,i]
-        for g in ['ADn', 'Pos']:
-            features = combination[g]['features']
-            target = combination[g]['targets']
-            Xr = data[features].values
-            Yr = data[target].values
-            Xt = swsdata[features].values
-            Yt = xgb_decodage(Xr, Yr, Xt)
 
-        final_data[ses]['sws'] = {'output':Yt}        
 
 # final_data = pickle.load(open("../data/fig4_200t.pickle", 'rb'))
 
@@ -323,6 +325,7 @@ methods_to_plot = ['bayesian_decoding', 'xgb_decodage']
 labels_plot = [labels[m] for m in methods_to_plot]
 
 
+
 mean_mse = list()
 sem_mse = list()
 for i in xrange(len(methods_to_plot)):
@@ -332,6 +335,9 @@ for i in xrange(len(methods_to_plot)):
 bar(np.arange(np.size(mean_mse)), mean_mse, 0.4, align='center',
         ecolor='k', alpha=.9, color=colors_['ADn'], ec='w', yerr=np.array(sem_mse), label = 'Antero-dorsal nucleus')
 plot(np.arange(np.size(mean_mse)), mean_mse, 'k.', markersize=5)
+
+
+
 mean_mse = list()
 sem_mse = list()
 for i in xrange(len(methods_to_plot)):
@@ -373,8 +379,8 @@ for i,s,g  in zip(xrange(2), ses_ex, ['ADn', 'Pos']):
     locator_params(axis='x', nbins = 4)
 
 
-savefig("../../figures/fig4.pdf", dpi=900, bbox_inches = 'tight', facecolor = 'white')
-os.system("evince ../../figures/fig4.pdf &")
+savefig("../../figures/fig5.pdf", dpi=900, bbox_inches = 'tight', facecolor = 'white')
+os.system("evince ../../figures/fig5.pdf &")
     
 
 

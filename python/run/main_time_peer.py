@@ -77,7 +77,7 @@ for ep in episode:
 		for i in xrange(adrien_data['ADn'].shape[1]): data['ADn'+'.'+str(i)] = adrien_data['ADn'][:,i]
 
 		# cut if longer than 40 min
-		if len(data) > (40*60*1000)//bin_size:
+		if len(data) > (15*60*1000)//bin_size:
 			data = data[0:(40*60*1000)//bin_size]
 
 

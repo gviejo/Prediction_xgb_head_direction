@@ -52,7 +52,7 @@ corr_data['sws'] = corr_data['sleep']
 index = ~np.isnan(corr_data['sws'].mean(1))
 for ep in ['wake', 'rem', 'sws'] : corr_data[ep] = corr_data[ep][index]
 
-
+sys.exit()
 
 #####################################################################
 # PLOTTING

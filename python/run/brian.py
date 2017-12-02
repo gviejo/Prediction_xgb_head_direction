@@ -24,8 +24,8 @@ def tuning_curve(x, f, nb_bins, tau = 40.0):
 # 	print(s, matdata['ADn'].shape[1], matdata['Pos'].shape[1])	
 
 
-bin_size = 25
-time = np.arange(-500, 500+bin_size, bin_size)
+bin_size = 5
+
 matdata = scipy.io.loadmat("../data/sessions_nosmoothing_"+str(bin_size)+"ms/wake/boosted_tree.Mouse28-140313.mat")
 n_adn 	= matdata['ADn'].shape[1]
 n_pos 	= matdata['Pos'].shape[1]
@@ -35,64 +35,10 @@ columns = []
 for k, n_neurons in zip(['ADn', 'Pos'],[n_adn, n_pos]):	
 	for n in range(n_neurons):
 		columns.append(k+"."+str(n))
-		xbins, frate, index = tuning_curve(ang, matdata[k][:,n], 15, 1/(bin_size*1e-3))
+		xbins, frate, index = tuning_curve(ang, matdata[k][:,n], 60, 1/(bin_size*1e-3))
 		tcurves.append(frate)
 
 tcurves = pd.DataFrame(index = xbins, columns = columns, data = np.array(tcurves).transpose())
-
-
-to_keep = ['ADn.7', 'Pos.8']
-adn = tcurves[to_keep[0]]
-pos = tcurves[to_keep[1]]
-
-
-############################################################################
-# SIMULATION
-############################################################################
-from brian2 import *
-set_device('cpp_standalone')
-start_scope()
-
-# eqs = '''
-# dv/dt = -v/tau + sigma*xi*tau**-0.5 : volt
-# I : 1
-# tau : second
-# '''
-tau 			= 10*ms
-sigma 			= .0
-# eqs_neurons 	= '''
-# dv/dt = -v / tau + sigma * (2 / tau)**.5 * xi : 1 (unless refractory)
-# '''
-eqs_neurons 	= 	'''
-					dv/dt = -v / tau : 1 (unless refractory)
-					'''
-
-freq_steps_adn 	= adn.reindex(ang, method = 'nearest').values.flatten()
-freq_steps_pos 	= pos.reindex(ang, method = 'nearest').values.flatten()
-
-stimadn 		= TimedArray(freq_steps_adn * Hz, dt = float(bin_size) * ms)
-stimpos 		= TimedArray(freq_steps_pos * Hz, dt = float(bin_size) * ms)
-
-I_adn 			= PoissonGroup(1, rates='stimadn(t)')
-I_pos 			= PoissonGroup(1, rates='stimpos(t)')
-G 				= NeuronGroup(4, model=eqs_neurons, threshold='v > 1', reset='v = 0', refractory=0*ms, method='euler')
-S_adn 			= Synapses(I_adn, G, 'w : 1', on_pre='v_post += w')
-S_adn.connect(i=0, j=np.arange(0,4))
-S_adn.w 		= '0.0'
-S_adn.delay 	= 'j*50*ms'
-S_pos 			= Synapses(I_pos, G, 'w : 1', on_pre='v_post += w')
-S_pos.connect(i=0, j=np.arange(0,4))
-S_pos.w 		= '1.2'
-# S_pos.delay 	= '0*ms'
-# M2 = StateMonitor(G, 'v', record=True)
-out_mon 		= SpikeMonitor(G)
-adn_mon 		= SpikeMonitor(I_adn)
-pos_mon 		= SpikeMonitor(I_pos)
-duration 		= len(ang)*bin_size*ms
-run(duration, report = 'text')
-# duration = 5*60.*second
-# run(duration, profile = 'True')
-print(" Simulation finished")
 
 ###########################################################################
 # CROSS-CORR OF REAL NEURONS
@@ -139,95 +85,204 @@ def crossCorr(t1, t2, binsize, nbins):
 
 	return C
 
-spikes = scipy.io.loadmat("../data/spikes.Mouse28-140313.mat")
-spikes_ts = dict()
-for k, n_neurons in zip(['ADn', 'Pos'],[n_adn, n_pos]):	
-	tmp = spikes[k][0][0][0]
-	for n in range(n_neurons):
-		spikes_ts[k+"."+str(n)] = tmp[n][0][0,0][1][0][0][2].flatten()
+# spikes = scipy.io.loadmat("../data/spikes.Mouse28-140313.mat")
+# spikes_ts = dict()
+# for k, n_neurons in zip(['ADn', 'Pos'],[n_adn, n_pos]):	
+# 	tmp = spikes[k][0][0][0]
+# 	for n in range(n_neurons):
+# 		spikes_ts[k+"."+str(n)] = tmp[n][0][0,0][1][0][0][2].flatten()
 		
+matdata2 		= scipy.io.loadmat("../data/spikes_binned.Mouse28-140313.mat")
+spikes_ts = dict()
+for k in ['ADn', 'Pos']:
+	for n in range(matdata2[k].shape[1]):
+		tmp 					= matdata2[k][:,n]
+		spikes_ts[k+"."+str(n)] = np.arange(0, len(matdata2[k])*0.001, 0.001)[tmp == 1.0]
 
 
-# TO SHOW ALL CROSS CORR OF ALL PAIRS OF POS_ADN NEURONS
+
+# # TO SHOW ALL CROSS CORR OF ALL PAIRS OF POS_ADN NEURONS
+
 # corr_real = []
 # real_adn_neuron = ["ADn."+str(i) for i in np.arange(n_adn)]
 # real_pos_neuron = ["Pos."+str(j) for j in np.arange(n_pos)]
 # count = 1
+# figure()
 # for m in real_adn_neuron:
 # 	for n in real_pos_neuron:		
-# 		C = crossCorr(spikes_ts[n]*1000, spikes_ts[m]*1000, bin_size, 1000/bin_size)
+# 		C = crossCorr(spikes_ts[n]*1000, spikes_ts[m]*1000, cc_bin_size, 1000/cc_bin_size)
 # 		# frate = float(len(spikes_ts[m]))/float(spikes_ts[m][-1] - spikes_ts[m][0])
 		
 # 		subplot(n_adn, n_pos, count)
 # 		plot(C)
-# 		title(m+" "+n, fontsize = 5)
+# 		title(m+" "+n, fontsize = 9)
 # 		xticks([])
 # 		yticks([])
 # 		axvline(20)
 # 		count += 1
 # 		corr_real.append(C)
+# figure()
+# count = 1
+# for m in real_adn_neuron:
+# 	for n in real_pos_neuron:
+# 		subplot(n_adn, n_pos, count)
+# 		plot(tcurves[m])
+# 		plot(tcurves[n])
+# 		title(m+" "+n, fontsize = 9)
+# 		count += 1
 # show()
 
-corr_real = crossCorr(spikes_ts[to_keep[1]]*1000, spikes_ts[to_keep[0]]*1000, bin_size, 1000/bin_size)
-corr_real = pd.DataFrame(index = time, data = corr_real, columns = ['real'])
+cc_bin_size = 25
+cc_bin_length = 1000
+time_cc = np.arange(-(cc_bin_length/2), (cc_bin_length/2)+cc_bin_size, cc_bin_size)
+to_keep = ['ADn.15', 'Pos.2']
+# to_keep = ['ADn.4', 'Pos.2']
+# to_keep = ['ADn.7', 'Pos.8']
+# to_keep = ['ADn.11', 'Pos.1']
+corr_real = crossCorr(spikes_ts[to_keep[1]]*1000, spikes_ts[to_keep[0]]*1000, cc_bin_size, cc_bin_length/cc_bin_size)
+corr_real = pd.DataFrame(index = time_cc, data = corr_real, columns = ['real'])
+
+adn = tcurves[to_keep[0]]
+pos = tcurves[to_keep[1]]
+
+
+############################################################################
+# SIMULATION GRID SEARCH
+############################################################################
+from brian2 import *
+set_device('cpp_standalone')
+start_scope()
+
+
+eqs_neurons 	= 	'''
+					dv/dt = -v / tau : 1 
+					tau : second
+					'''
+
+# repeating the same simulation several times to ensure good statistics
+n_repeat 		= 1
+nang 			= np.tile(ang, n_repeat)
+# freq_steps_adn 	= adn.reindex(nang, method = 'nearest').values.flatten()
+freq_steps_pos 	= pos.reindex(nang, method = 'nearest').values.flatten()
+# false tuning curve for the false pos to receive input from adn
+# dummy_tcurve 	= pd.DataFrame(	index 	= adn.index.values, 
+								# data 	= 0.2*np.exp(3.0*np.cos(adn.index.values - adn.index.values[np.argmax(pos.values)])))
+# freq_steps_pos 	= dummy_tcurve.reindex(nang, method = 'nearest').values.flatten()
+I_adn 			= SpikeGeneratorGroup(1, np.zeros(len(spikes_ts[to_keep[0]])), times = spikes_ts[to_keep[0]]*second)
+# stimadn 		= TimedArray(freq_steps_adn * Hz, dt = float(bin_size) * ms)
+stimpos 		= TimedArray(freq_steps_pos * Hz, dt = float(bin_size) * ms)
+# I_adn 			= PoissonGroup(1, rates='stimadn(t)')
+I_pos 			= PoissonGroup(1, rates='stimpos(t)')
+
+weights 		= np.arange(0, 1.0, 0.1) # ADn weights
+# delays 			= [0.0, 50., 100.]*ms # ADn -> output
+taus 			= np.arange(5, 200, 40)*ms
+
+G 				= NeuronGroup(len(weights)*len(weights)*len(taus), model=eqs_neurons, threshold='v > 1.0', reset='v = 0', method = 'exact')
+G.tau 			= np.tile(np.repeat(taus, len(weights)), len(weights))
+S_adn 			= Synapses(I_adn, G, 'w : 1', on_pre='v_post += w')
+S_adn.connect(i=0, j=np.arange(0,len(G)))
+S_adn.w 		= np.tile(np.tile(weights, len(taus)), len(weights))
+# S_adn.delay 	= np.repeat(delays, len(weights)*len(taus))
+S_adn.delay 	= 0*ms
+S_pos 			= Synapses(I_pos, G, 'w : 1', on_pre='v_post += w')
+S_pos.connect(i=0, j=np.arange(0,len(G)))
+S_pos.w 		= np.tile(np.tile(weights, len(taus)), len(weights))
+out_mon 		= SpikeMonitor(G)
+adn_mon 		= SpikeMonitor(I_adn)
+pos_mon 		= SpikeMonitor(I_pos)
+duration 		= len(nang)*bin_size*ms
+run(duration, report = 'text')
+print(" Simulation finished")
+adn_spikes = adn_mon.spike_trains()[0]
+pos_spikes = pos_mon.spike_trains()[0]
+out_spikes = {n:out_mon.spike_trains()[n] for n in out_mon.spike_trains().keys()}
+
+############################################################################
+# SIMULATION
+############################################################################
+# from brian2 import *
+# set_device('cpp_standalone')
+# start_scope()
+
+
+# eqs_neurons 	= 	'''
+# 					dv/dt = -v / tau : 1 
+# 					tau : second
+# 					'''
+
+# # repeating the same simulation several times to ensure good statistics
+# n_repeat 		= 1
+# nang 			= np.tile(ang, n_repeat)
+# # freq_steps_adn 	= adn.reindex(nang, method = 'nearest').values.flatten()
+# freq_steps_pos 	= pos.reindex(nang, method = 'nearest').values.flatten()
+# # false tuning curve for the false pos to receive input from adn
+# # dummy_tcurve 	= pd.DataFrame(	index 	= adn.index.values, 
+# 								# data 	= 0.2*np.exp(3.0*np.cos(adn.index.values - adn.index.values[np.argmax(pos.values)])))
+# # freq_steps_pos 	= dummy_tcurve.reindex(nang, method = 'nearest').values.flatten()
+# I_adn 			= SpikeGeneratorGroup(1, np.zeros(len(spikes_ts[to_keep[0]])), times = spikes_ts[to_keep[0]]*second)
+# # stimadn 		= TimedArray(freq_steps_adn * Hz, dt = float(bin_size) * ms)
+# stimpos 		= TimedArray(freq_steps_pos * Hz, dt = float(bin_size) * ms)
+# # I_adn 			= PoissonGroup(1, rates='stimadn(t)')
+# I_pos 			= PoissonGroup(1, rates='stimpos(t)')
+# G 				= NeuronGroup(3, model=eqs_neurons, threshold='v > 0.99', reset='v = 0', method = 'exact')
+# G.tau			= 50*ms
+# S_adn 			= Synapses(I_adn, G, 'w : 1', on_pre='v_post += w')
+# S_adn.connect(i=0, j=np.arange(0,len(G)))
+# S_adn.w 		= 0.01
+# # S_adn.delay 	= np.array([0.0, 10.0])*ms
+# S_adn.delay 	= np.array([0.0, 50.0, 100.0])*ms
+# S_pos 			= Synapses(I_pos, G, 'w : 1', on_pre='v_post += w')
+# S_pos.connect(i=0, j=np.arange(0,len(G)))
+# S_pos.w 		= 0.6
+# M2 = StateMonitor(G, 'v', record=True)
+# out_mon 		= SpikeMonitor(G)
+# adn_mon 		= SpikeMonitor(I_adn)
+# pos_mon 		= SpikeMonitor(I_pos)
+# duration 		= len(nang)*bin_size*ms
+# run(duration, report = 'text')
+# print(" Simulation finished")
+# adn_spikes = adn_mon.spike_trains()[0]
+# pos_spikes = pos_mon.spike_trains()[0]
+# out_spikes = {n:out_mon.spike_trains()[n] for n in out_mon.spike_trains().keys()}
 
 #####################################################################
 # CROSS_CORRELATION OF SIMULATED NEURONS
 #####################################################################
-def crossCorr2(t1, t2, binsize, nbins):
-	'''
-		Slow crossCorr
-	'''
-	window = np.arange(-binsize*(nbins/2),binsize*(nbins/2)+2*binsize,binsize) - (binsize/2.)
-	allcount = np.zeros(nbins+1)
-	for e in t1:
-		mwind = window + e
-		index = np.digitize(t2, mwind)
-		# index larger than 2 and lower than mwind.shape[0]-1
-		# count each occurences 
-		count = np.array([np.sum(index == i) for i in range(1,mwind.shape[0])])
-		allcount += np.array(count)
-	allcount = allcount/(float(len(t1))*binsize / 1000)
-	return allcount
 
-adn_spikes = np.array(adn_mon.spike_trains()[0])
-pos_spikes = np.array(pos_mon.spike_trains()[0])
-adn_spikes += spikes_ts[to_keep[0]][0]
-pos_spikes += spikes_ts[to_keep[1]][0]
-
-out_spikes = out_mon.spike_trains()
-corr_simu = crossCorr2(np.array(pos_spikes)*1000., np.array(adn_spikes)*1000., bin_size, 1000/bin_size)
-corr_simu = pd.DataFrame(index = time, data = corr_simu, columns = ['simu'])
-
-
-
+corr_simu = crossCorr(np.round(pos_spikes/ms), adn_spikes/ms, cc_bin_size, cc_bin_length/cc_bin_size)
+corr_simu = pd.DataFrame(index = time_cc, data = corr_simu, columns = ['simu'])
 corr_simu_delay = []
 for k in out_spikes.keys():
-	corr_simu_delay.append(crossCorr(np.array(out_spikes[k])*1000., np.array(adn_spikes)*1000., bin_size, 1000/bin_size))
+	corr_simu_delay.append(crossCorr(np.round(out_spikes[k]/ms), np.round(adn_spikes/ms), cc_bin_size, cc_bin_length/cc_bin_size))
 corr_simu_delay = np.array(corr_simu_delay)
-corr_simu_delay = pd.DataFrame(columns = S_adn.delay, index = time, data = corr_simu_delay.transpose())
+corr_simu_delay = pd.DataFrame(columns = out_spikes.keys(), index = time_cc, data = corr_simu_delay.transpose())
 
 
-
-# tuning_curves
+# #############################################################################
+# # TUNING CURVES BRIAN
+# #############################################################################
 data = pd.DataFrame()
-f, bins_edge = np.histogram(adn_spikes[0]/ms, int(duration / ms / bin_size), range = (0, duration/ms))
+f, bins_edge = np.histogram(np.round(adn_spikes/ms), int(duration / ms / bin_size), range = (0, duration/ms))
 data['ADn'] = f 
-f, bins_edge = np.histogram(pos_spikes[0]/ms, int(duration / ms / bin_size), range = (0, duration/ms))
+f, bins_edge = np.histogram(np.round(pos_spikes/ms), int(duration / ms / bin_size), range = (0, duration/ms))
 data['Pos'] = f 
 for k in out_spikes.keys():
-	f, bins_edge = np.histogram(out_spikes[k]/ms, int(duration / ms / bin_size), range = (0, duration/ms))
-	data['Pos_'+str(S_adn.delay[k])] = f
+	f, bins_edge = np.histogram(np.round(out_spikes[k]/ms), int(duration / ms / bin_size), range = (0, duration/ms))
+	data['Pos_'+str(k)] = f
 
 tcurves_brian = pd.DataFrame()
-x, tcurve, index = tuning_curve(ang, data['ADn'].values, 15, 1/float(bin_size*1e-3))
+x, tcurve, index = tuning_curve(nang, data['ADn'].values, 60, 1/float(bin_size*1e-3))
 tcurves_brian['ADn'] = tcurve
-x, tcurve, index = tuning_curve(ang, data['Pos'].values, 15, 1/float(bin_size*1e-3))
+x, tcurve, index = tuning_curve(nang, data['Pos'].values, 60, 1/float(bin_size*1e-3))
 tcurves_brian['Pos'] = tcurve
 tcurves_brian = tcurves_brian.set_index(x)
 for k in out_spikes.keys():
-	x, tcurve, index = tuning_curve(ang, data['Pos_'+str(S_adn.delay[k])].values, 15, 1/float(bin_size*1e-3))
-	tcurves_brian['Pos_'+str(S_adn.delay[k])] = pd.DataFrame(data = tcurve, index = x)
+	x, tcurve, index = tuning_curve(nang, data['Pos_'+str(k)].values, 60, 1/float(bin_size*1e-3))
+	tcurves_brian['Pos_'+str(k)] = pd.DataFrame(data = tcurve, index = x)
+
+
+
 
 
 # figure()
@@ -236,36 +291,45 @@ for k in out_spikes.keys():
 # plot(out_mon.t, out_mon.i+3, '.')
 
 
-
 figure()
 subplot(221)
 plot(tcurves_brian['ADn'], label = 'brian Adn', linewidth = 3)
 plot(adn, label = 'real Adn', linewidth = 3)
 legend()
 subplot(223)
+# plot(dummy_tcurve, linewidth = 3, label = 'dummy Pos')
 plot(tcurves_brian['Pos'], label = 'brian Pos', linewidth = 3)
 plot(pos, label = 'real Pos', linewidth = 3)
-for k in S_adn.delay:
-	plot(tcurves_brian['Pos_'+str(k)], '--', linewidth = 3, label = str(k))
+# for k in out_spikes.keys():
+# 	plot(tcurves_brian['Pos_'+str(k)], '--', linewidth = 3, label = str(k))
+# legend(loc = 'best')
 
-legend()
 subplot(122)
 plot(corr_simu, label = 'simu', linewidth = 3)
 plot(corr_real, label = 'real', linewidth = 3)
 for k in corr_simu_delay.columns:
-	plot(corr_simu_delay[k], '--', linewidth = 3, label = str(k)+" ms")
-legend()
+	plot(corr_simu_delay[k], '--', linewidth = 3, label = str(k))
+legend(loc = 'best')
 
 show()
 
+# for j in np.arange(0, 400, 100):
+# 	figure()
+# 	count = 1
+# 	for i in np.arange(j, j+100):
+# 		subplot(10,10,count)
+# 		lb = "tau:"+str(float(G.tau[i])) + " w:" + str(S_pos.w[i])
+# 		plot(corr_simu_delay[i], '--', linewidth = 3)
+# 		plot(corr_real, label = 'real', linewidth = 3)
+# 		plot(corr_simu, ':', label = 'simu', linewidth = 3)
+# 		title(lb, fontsize = 5)
+# 		# xticks([])
+# 		# yticks([])
+# 		count += 1
+# show()
+
+
 sys.exit()
-
-
-
-
-
-
-
 
 
 
@@ -296,26 +360,10 @@ def extract_tree_threshold(trees):
 		thr[k] = np.sort(np.array(thr[k]))
 	return thr
 
-bin_size = 5 # ms
-data = pd.DataFrame()
-out_spikes = out_mon.spike_trains()
 
-for k in adn_spikes.keys():
-	f, bins_edge = np.histogram(adn_spikes[k]/ms, int(duration / ms / bin_size), range = (0, duration/ms))
-	data['ADn'+'.'+str(k)] = f / (bin_size*1e-3)
-
-for k in pos_spikes.keys():
-	f, bins_edge = np.histogram(pos_spikes[k]/ms, int(duration / ms / bin_size), range = (0, duration/ms))
-	data['Pos'+'.'+str(k)] = f / (bin_size*1e-3)
-
-for k in out_spikes.keys():
-	f, bins_edge = np.histogram(out_spikes[k]/ms, int(duration / ms / bin_size), range = (0, duration/ms))
-	data['Out'+'.'+str(k)] = f / (bin_size*1e-3)
-
-
-adn_neuron = [n for n in data.keys() if 'ADn' in n]
-pos_neuron = [n for n in data.keys() if 'Pos' in n]
-out_neuron = [n for n in data.keys() if 'Out' in n]
+adn_neuron = ['ADn']
+pos_neuron = ['Pos']
+out_neuron = ['Pos_0', 'Pos_1']
 
 ###########################################################################################
 # create shifted spiking activity from -500 to 500 ms with index 0 to 40 (20 for t = 0 ms) for all ADn_neuron
@@ -349,7 +397,7 @@ params = {'objective': "count:poisson", #for poisson output
     'learning_rate': 0.1,
     'min_child_weight': 2, 'n_estimators': 580,
     'subsample': 0.6, 'max_depth': 5, 'gamma': 0.4}        
-num_round = 90
+num_round = 80
 
 for k in combination.keys():
 	features = combination[k]['features']
@@ -384,7 +432,7 @@ index = np.repeat(np.arange(len(adn_neuron)), nb_bins+1)
 for n in thresholds.iterkeys():
 	splits = thresholds[n]
 	for s in splits.keys():
-		time_count[int(n.split(".")[1]), index[int(s[1:])], int(s[1:])%(nb_bins+1)] = len(splits[s])
+		time_count[int(n.split("_")[1]), index[int(s[1:])], int(s[1:])%(nb_bins+1)] = len(splits[s])
 
 time_count = time_count.sum(1)
 
@@ -393,24 +441,12 @@ index = np.repeat(np.arange(len(adn_neuron)), nb_bins+1)
 for n in gain.iterkeys():
 	g = gain[n]
 	for s in g.keys():
-		gain_value[int(n.split(".")[1]), index[int(s[1:])], int(s[1:])%(nb_bins+1)] = g[s]
+		gain_value[int(n.split("_")[1]), index[int(s[1:])], int(s[1:])%(nb_bins+1)] = g[s]
 
 # gain_value = gain_value.reshape(len(out_neuron)*len(adn_neuron), 41)
 gain_value = gain_value.sum(1)
-
-
-
-
-time = np.arange(-500, 500+bin_size, bin_size)
-xgb_peaks = pd.DataFrame(index = time, data = (time_count*gain_value).transpose(), columns = S_adn.delay)
-
-
-corr_out = []
-for k in out_spikes.keys():
-	corr_out.append(crossCorr(np.array(out_spikes[k]/ms), np.array(adn_spikes[0]/ms), bin_size, 1000/bin_size))
-corr_out = np.array(corr_out)
-corr_out = pd.DataFrame(columns = S_adn.delay, index = time, data = corr_out.transpose())
-corr_out[corr_out.isnull()] = 0.0
+xgb_times = np.arange(-(cc_bin_length/2), (cc_bin_length/2)+bin_size, bin_size)
+xgb_peaks = pd.DataFrame(index = xgb_times, data = (time_count*gain_value).transpose(), columns = np.arange(len(out_neuron)))
 
 
 #####################################################################
@@ -418,13 +454,26 @@ corr_out[corr_out.isnull()] = 0.0
 #####################################################################
 
 figure()
-ax = subplot(211)
-plot(corr_real, label = 'real')
-plot(corr_simu, label = 'simu/no delay')
-title("Cross correlation")
-
-ax = subplot(212)
-plot(time, xgb_peaks, label = corr_simu.columns.values)
+subplot(221)
+plot(tcurves_brian['ADn'], label = 'brian Adn', linewidth = 3)
+plot(adn, label = 'real Adn', linewidth = 3)
 legend()
-title("XGB")
+subplot(223)
+plot(tcurves_brian['Pos'], label = 'brian Pos', linewidth = 3)
+plot(pos, label = 'real Pos', linewidth = 3)
+for k in out_spikes.keys():
+	plot(tcurves_brian['Pos_'+str(k)], '--', linewidth = 3, label = str(k))
+legend(loc = 'best')
+
+subplot(222)
+plot(corr_simu, label = 'simu', linewidth = 3)
+plot(corr_real, label = 'real', linewidth = 3)
+for k in corr_simu_delay.columns:
+	plot(corr_simu_delay[k], '--', linewidth = 3, label = str(k))
+
+subplot(224)
+plot(xgb_peaks)
+
+
 show()
+

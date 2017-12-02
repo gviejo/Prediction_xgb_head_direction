@@ -265,7 +265,8 @@ def compute_cross_correlation(session):
 					mean_firing_rate = float(len(ts_thalamus[k]))/float(np.sum(np.sum(ep[:,1] - ep[:,0])))
 					tmp.append(C/mean_firing_rate)
 				
-				data[session][order[i]][n] = np.array(tmp).mean(0)
+				# data[session][order[i]][n] = np.array(tmp).mean(0)
+				data[session][order[i]][n] = np.array(tmp)
 
 		
 		return data
@@ -273,7 +274,11 @@ def compute_cross_correlation(session):
 		return None
 
 
-a = dview.map_sync(compute_cross_correlation, datasets)
+# a = dview.map_sync(compute_cross_correlation, datasets)
+
+
+
+sys.exit()
 
 data = {}
 for i in range(len(a)):

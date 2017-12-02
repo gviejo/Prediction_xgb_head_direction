@@ -6,7 +6,8 @@ x = [];
 y = [];
 
 for i = 1:size(file)
-    dset = file(i)               
+    dset = 'Mouse28/Mouse28-140313'
+    %dset = file(i)               
     data_dir = fullfile(path_to_data, char(dset));
     cd(data_dir);
     binSize = 0.005; %in seconds
@@ -83,6 +84,16 @@ for i = 1:size(file)
     y = [y n];
     
     tmp = strsplit(char(dset), '/');    
+    Sth = struct(S(thIx));
+    Spos = struct(S(poIx));
+    Sbis =struct('ADn', Sth, 'Pos', Spos);
+    Qbis = MakeQfromS(S, 0.001);
+    Qbis = Restrict(Qbis, ep);
+    dQbis      = Data(Qbis);
+    dQadn_bis   = dQbis(:,thIx);
+    dQpos_bis   = dQbis(:,poIx);    
+    data_to_save_bis = struct('ADn', dQadn_bis, 'Pos', dQpos_bis);
+    %save(strcat('/home/guillaume/Prediction_xgb_head_direction/python/data/spikes_binned.', char(tmp(2)), '.mat'), '-struct', 'data_to_save_bis');
+    %save(strcat('/home/guillaume/Prediction_xgb_head_direction/python/data/spikes.', char(tmp(2)), '.mat'), '-struct', 'Sbis');
     save(strcat('/home/guillaume/Prediction_xgb_head_direction/python/data/sessions_nosmoothing_5ms/wake/boosted_tree.', char(tmp(2)), '.mat'), '-struct', 'data_to_save');
-end
-    
+end    
