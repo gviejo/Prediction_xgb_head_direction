@@ -239,7 +239,7 @@ def figsize(scale):
 	inches_per_pt = 1.0/72.27                       # Convert pt to inch
 	golden_mean = (np.sqrt(5.0)-1.0)/2.0            # Aesthetic ratio (you could change this)
 	fig_width = fig_width_pt*inches_per_pt*scale    # width in inches
-	fig_height = fig_width*golden_mean*0.85            # height in inches
+	fig_height = fig_width*golden_mean*1.1            # height in inches
 	fig_size = [fig_width,fig_height]
 	return fig_size
 
@@ -263,8 +263,8 @@ pdf_with_latex = {                      # setup matplotlib to use latex for outp
 	"font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
 	"font.sans-serif": [],
 	"font.monospace": [],
-	"axes.labelsize": 5,               # LaTeX default is 10pt font.
-	"font.size": 7,
+	"axes.labelsize": 7,               # LaTeX default is 10pt font.
+	"font.size": 8,
 	"legend.fontsize": 5,               # Make the legend/label fonts a little smaller
 	"xtick.labelsize": 5,
 	"ytick.labelsize": 5,
@@ -300,10 +300,13 @@ outer = gridspec.GridSpec(2,2, width_ratios = [1.6,0.7], wspace = 0.2, hspace = 
 
 ##PLOT 1#################################################################################################################
 # Examples subplot 1 et 2
-gs = gridspec.GridSpecFromSubplotSpec(1,2, subplot_spec = outer[0], wspace = 0.4)
+#########################################################################################################################
+gs1 	= gridspec.GridSpec(1,2)
+gs1.update(wspace = 0.4, bottom = 0.65, top = 1, right = 0.6, left = 0.04)
+
 limts = [(1.5,5),(0.7, 3.6)]
 for e, i in zip(['ADn','Pos'],range(2)):			
-	ax = subplot(gs[i])
+	ax = subplot(gs1[0,i])
 	simpleaxis(ax)	
 	[ax.axvline(l, alpha = 0.9, color = 'grey', linewidth = 0.2) for l in np.unique(thresholds['ang'][e]['f0'])[0:100]]	
 	fisher = fisher_information(tuningc[e][0], tuningc[e][1])
@@ -323,17 +326,19 @@ for e, i in zip(['ADn','Pos'],range(2)):
 	ax.locator_params(axis='x', nbins = 4)
 	if j == 0:
 		ax.set_title(title_[i], loc = 'right')
-	leg = ax2.legend(fontsize = 4, loc = 'best')
+	leg = ax2.legend(fontsize = 5, loc = 'best')
 	leg.get_frame().set_linewidth(0.0)
 	# leg.get_frame().set_facecolor('white')
-	ax.set_title(title_[i], fontsize = 6)
+	ax.set_title(title_[i], fontsize = 7)
 
 ##PLOT 2#################################################################################################################
 # Centered density
-gs = gridspec.GridSpecFromSubplotSpec(1,2, subplot_spec = outer[2], wspace = 0.4)
+#########################################################################################################################
+gs2 	= gridspec.GridSpec(1,2)
+gs2.update(wspace = 0.4, bottom = 0.0, top = 0.55, right = 0.6, left = 0.04)
 tmp = []
 for g,i in zip(['1.ADn', '1.Pos'], xrange(2)):
-	ax = subplot(gs[i])	
+	ax = subplot(gs2[0,i])	
 	simpleaxis(ax)
 	for k in angdens[g].iterkeys():
 		if np.max(angdens[g][k][1]*100.0) < 50:
@@ -351,7 +356,7 @@ for g,i in zip(['1.ADn', '1.Pos'], xrange(2)):
 	tmp.append(ax.get_position().bounds)
 
 
-ai = axes([tmp[0][0]+tmp[0][2]*0.7,tmp[0][1]+tmp[0][3]*0.8, 0.06, 0.07])
+ai = axes([tmp[0][0]+tmp[0][2]*0.7,tmp[0][1]+tmp[0][3]*0.8, 0.09, 0.12])
 ai.get_xaxis().tick_bottom()
 ai.get_yaxis().tick_left()
 n, bins, patches = ai.hist(corr['ADn'], 8, normed = 1, facecolor = 'white', edgecolor = colors_[0])
@@ -359,11 +364,11 @@ ai.set_xlim(-1, 1)
 ai.set_xticks([-1, 0, 1])
 ai.set_xticklabels([-1,'',1])
 ai.set_yticks([])
-ai.set_title("<Fisher,Splits>", fontsize = 4, position = (0.5, 0.9))
-ai.set_xlabel("$r$", fontsize = 4, labelpad = -2.4)
-ai.set_ylabel("$\%$", fontsize = 4, labelpad = 0.5)
+ai.set_title(r'$<$Fisher,Splits$>$', fontsize = 6, position = (0.5, 0.9))
+ai.set_xlabel("$r$", fontsize = 6, labelpad = -2.4)
+ai.set_ylabel("$\%$", fontsize = 6, labelpad = 0.5)
 
-aii = axes([tmp[1][0]+tmp[1][2]*0.7,tmp[1][1]+tmp[1][3]*0.8, 0.06, 0.07])
+aii = axes([tmp[1][0]+tmp[1][2]*0.7,tmp[1][1]+tmp[1][3]*0.8, 0.09, 0.12])
 aii.get_xaxis().tick_bottom()
 aii.get_yaxis().tick_left()
 n, bins, patches = aii.hist(corr['Pos'], 8, normed = 1, facecolor = 'white', edgecolor = colors_[1])
@@ -371,9 +376,9 @@ aii.set_xlim(-1,1)
 aii.set_xticks([-1, 0, 1])
 aii.set_xticklabels([-1,'',1])
 aii.set_yticks([])
-aii.set_title("<Fisher,Splits>", fontsize = 4, position = (0.5, 0.9))
-aii.set_xlabel("$r$", fontsize = 4, labelpad = -2.4)
-aii.set_ylabel("$\%$", fontsize = 4, labelpad = 0.5)
+aii.set_title(r'$<$Fisher,Splits$>$', fontsize = 6, position = (0.5, 0.9))
+aii.set_xlabel("$r$", fontsize = 6, labelpad = -2.4)
+aii.set_ylabel("$\%$", fontsize = 6, labelpad = 0.5)
 
 
 
@@ -383,10 +388,13 @@ aii.set_ylabel("$\%$", fontsize = 4, labelpad = 0.5)
 
 ##PLOT 3#################################################################################################################
 # x y split
-gs = gridspec.GridSpecFromSubplotSpec(2,2, subplot_spec = outer[1], wspace = 0.5, hspace = 0.5)
+#########################################################################################################################
+gs3 	= gridspec.GridSpec(2,2)
+gs3.update(wspace = 0.4, hspace = 0.4, bottom = 0.65, top = 1, right = 1.0, left = 0.7)
+
 title2 = ['ADn', 'PoSub']
 for e, i in zip(['ADn','Pos'],range(2)):			
-	ax = subplot(gs[i])
+	ax = subplot(gs3[0,i])
 	simpleaxis(ax)	
 
 	[ax.axvline(l, alpha = 0.6, color = colors_[i], linewidth = 0.2) for l in np.unique(thresholds['xy'][e]['f0'])]
@@ -398,30 +406,34 @@ for e, i in zip(['ADn','Pos'],range(2)):
 	ax.set_yticks([])	
 	ax.set_xlim(thresholds['xy'][e]['f0'].min(), thresholds['xy'][e]['f0'].max())
 	ax.set_ylim(thresholds['xy'][e]['f1'].min(), thresholds['xy'][e]['f1'].max())
-	ax.set_title(title2[i], fontsize = 5)
+	ax.set_title(title2[i], fontsize = 7)
 
+count = 0
 for e, i in zip(['ADn','Pos'],range(2,4)):			
-	ax = subplot(gs[i])
+	ax = subplot(gs3[1,count])
 	simpleaxis(ax)	
-	im = ax.imshow(twod['3.'+e].transpose(), origin = 'lower', interpolation = 'nearest', aspect=  'equal', cmap = "gist_yarg")
+	im = ax.imshow(twod['3.'+e].transpose(), origin = 'lower', interpolation = 'nearest', aspect=  'auto', cmap = "gist_yarg")
 	ax.set_xlabel('x pos', labelpad = 0.4)
 	ax.set_ylabel('y pos')
 	ax.set_xticks([])
 	ax.set_yticks([])		
+	count += 1
 #  	cbar = colorbar(im, orientation = 'horizontal', fraction = 0.05, pad = 0.4, ticks=[np.min(twod['3.'+e]), np.max(twod['3.'+e])])
 # 	cbar.set_ticklabels([np.min(twod['3.'+e]), np.max(twod['3.'+e])])
 # 	cbar.ax.tick_params(labelsize = 4)
 # 	cbar.update_ticks()
 
-ax.set_title('Density of (x,y) splits $(\%)$', fontsize=5, position = (-0.35, 0.95))
+ax.set_title('Density of (x,y) splits $(\%)$', fontsize=7, position = (-0.35, 0.95))
 
 ##PLOT 4#################################################################################################################
 # ang x y density
-gs = gridspec.GridSpecFromSubplotSpec(2,2, subplot_spec = outer[3], hspace = 0.06, wspace = 0.5)
+#########################################################################################################################
+gs4 	= gridspec.GridSpec(2,2)
+gs4.update(wspace = 0.3, hspace = 0.06, bottom = 0.35, top = 0.55, right = 1.0, left = 0.7)
 
 labels = ['ADn', 'PoSub']
 
-subplot(gs[:,0])
+subplot(gs4[:,0])
 simpleaxis(gca())
 x = np.arange(3, dtype = float)
 for g, i in zip(ratio.iterkeys(), xrange(2)):
@@ -442,10 +454,10 @@ for g, i in zip(ratio.iterkeys(), xrange(2)):
 locator_params(axis='y', nbins = 3)
 ylabel('$(\%)$')
 xticks(np.arange(3)+0.205, ('Angle','x pos', 'y pos'), rotation = 45, ha='right')
-title('Density\nof splits', fontsize = 6)
+title('Density\nof splits', fontsize = 7)
 
 
-subplot(gs[0,1])
+subplot(gs4[0,1])
 ax = gca()
 simpleaxis(ax)
 x = np.arange(3, dtype = float)
@@ -471,14 +483,14 @@ leg.get_frame().set_linewidth(0.0)
 locator_params(axis='y', nbins = 2)
 # ylabel('$(\%)$')
 ax.spines['bottom'].set_visible(False)
-title('Gain', fontsize = 6)
+title('Gain', fontsize = 7)
 d = .015  # how big to make the diagonal lines in axes coordinates
 # arguments to pass to plot, just so we don't keep repeating them
 kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
 ax.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
 
 
-subplot(gs[1,1])
+subplot(gs4[1,1])
 ax = gca()
 simpleaxis(ax)
 x = np.arange(3, dtype = float)
@@ -503,6 +515,106 @@ xticks(np.arange(3)+0.205, ('Angle','x pos', 'y pos'), rotation = 45, ha='right'
 locator_params(axis='y', nbins = 3)
 kwargs.update(transform=ax.transAxes)  # switch to the bottom axes
 ax.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+
+
+##PLOT 5#################################################################################################################
+# POISSON PROCESS
+#########################################################################################################################
+store 	= pd.HDFStore("../data/fig2_brian_gain.h5")
+brian_gain = store['data']
+store.close()
+
+brian_pos = brian_gain.filter(like = 'Pos', axis =  0)
+brian_adn = brian_gain.filter(like = 'ADn', axis =  0)
+
+
+gs5 	= gridspec.GridSpec(2,2)
+gs5.update(wspace = 0.3, hspace = 0.06, bottom = 0.0, top = 0.23, right = 1.0, left = 0.7)
+
+labels = ['ADn', 'PoSub']
+
+
+
+subplot(gs5[:,0])
+simpleaxis(gca())
+x = np.arange(3, dtype = float)
+order = ['ang.ang', 'ang.x', 'ang.y']
+for g, i in zip(['ADn', 'Pos'], xrange(2)):
+	tmp = brian_gain.filter(like = g, axis =  0)
+	mean = tmp.mean(0).loc[order]
+	sem = tmp.sem(0).loc[order]
+	bar(x, mean, 0.4, yerr = sem, align='center',
+		ecolor='k', alpha=.9, color=colors_[i], ec='w', label = labels[i], capsize = 1)
+	plot(x, mean, 'o', alpha = 1, color = 'black', markersize = 2)
+	x += 0.41
+
+locator_params(axis='y', nbins = 3)
+ylabel('Gain')
+xticks(np.arange(3)+0.205, ('Angle','x pos', 'y pos'), rotation = 45, ha='right')
+title('Sampling from \n angular tuning curve', fontsize = 7)
+ylim(0, 25)
+
+# subplot(gs4[0,1])
+# ax = gca()
+# simpleaxis(ax)
+# x = np.arange(3, dtype = float)
+# for g, i in zip(gain.iterkeys(), xrange(2)):
+# 	tmp = []
+# 	for k in gain[g].iterkeys():		
+# 		tmp.append(gain[g][k])
+# 	tmp = np.array(tmp)*100
+# 	mean = tmp.mean(0)	
+# 	sem = np.std(tmp, 0)/np.sqrt(np.size(tmp))
+# 	bar(x, mean, 0.4, yerr = sem, align='center',
+# 		ecolor='k', alpha=.9, color=colors_[i], ec='w', label = labels[i], capsize = 1)
+# 	plot(x, mean, 'o', alpha = 1, color = 'black', markersize = 2)
+# 	x += 0.41
+# 	xticks([])
+# 	yticks([70,90])
+# 	# leg = legend()
+# 	# leg.get_frame().set_linewidth(0.0)
+# 	ylim(60, 90)
+# 	xlim(-0.5, 2.95)
+# leg = legend(fontsize = 5, bbox_to_anchor = (0,1))
+# leg.get_frame().set_linewidth(0.0)		
+# locator_params(axis='y', nbins = 2)
+# # ylabel('$(\%)$')
+# ax.spines['bottom'].set_visible(False)
+# title('Gain', fontsize = 7)
+# d = .015  # how big to make the diagonal lines in axes coordinates
+# # arguments to pass to plot, just so we don't keep repeating them
+# kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+# ax.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+
+
+subplot(gs5[:,1])
+ax = gca()
+simpleaxis(ax)
+x = np.arange(3, dtype = float)
+order = ['spc.ang', 'spc.x', 'spc.y']
+for g, i in zip(['ADn', 'Pos'], xrange(2)):
+	tmp = brian_gain.filter(like = g, axis =  0)
+	mean = tmp.mean(0).loc[order]
+	sem = tmp.sem(0).loc[order]
+	bar(x, mean, 0.4, yerr = sem, align='center',
+		ecolor='k', alpha=.9, color=colors_[i], ec='w', label = labels[i], capsize = 1)
+	plot(x, mean, 'o', alpha = 1, color = 'black', markersize = 2)
+	x += 0.41
+	# xticks([])
+	# yticks([])
+	# leg = legend()
+	# leg.get_frame().set_linewidth(0.0)
+	# ylim(0,18)
+	# xlim(-0.5, 2.95)
+xticks(np.arange(3)+0.205, ('Angle','x pos', 'y pos'), rotation = 45, ha='right')
+locator_params(axis='y', nbins = 3)
+# kwargs.update(transform=ax.transAxes)  # switch to the bottom axes
+# ax.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+title('spatial tuning curve', fontsize = 7)
+ylabel('Gain')
+ylim(0, 25)
+
+
 
 savefig("../../figures/fig2.pdf", dpi = 900, bbox_inches = 'tight', facecolor = 'white')
 os.system("evince ../../figures/fig2.pdf &")
